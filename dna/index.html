@@ -139,7 +139,7 @@
   <div class="card" style="margin-top: 20px;">
     <div class="row">
       <span class="label">Cleanup</span>
-      <button onclick="run('clean')">Clean sequence</button>
+      <button class="secondary" onclick="run('clean')">Clean sequence</button>
       <label class="chk"><input type="checkbox" id="keepIUPAC" checked> keep IUPAC ambiguity codes (RYSWKMBDHVN)</label>
       <label class="chk"><input type="checkbox" id="keepGaps"> keep gaps (-)</label>
       <span class="inline-hint">removes whitespace, digits &amp; non-sequence characters</span>
@@ -147,7 +147,7 @@
     <hr class="sep">
     <div class="row">
       <span class="label">Transform</span>
-      <button onclick="run('revcomp')">Reverse complement</button>
+      <button class="secondary" onclick="run('revcomp')">Reverse complement</button>
       <button class="secondary" onclick="run('comp')">Complement</button>
       <button class="secondary" onclick="run('rev')">Reverse</button>
       <button class="secondary" onclick="run('dna2rna')">DNA &rarr; RNA</button>
@@ -163,7 +163,7 @@
     <div class="row">
       <span class="label">Layout</span>
       <button class="secondary" onclick="run('oneline')">Remove line breaks</button>
-      <button onclick="run('wrap')">Wrap lines</button>
+      <button class="secondary" onclick="run('wrap')">Wrap lines</button>
       <span class="inline-hint">at</span> <input type="number" id="wrapLen" value="60" min="1"> <span class="inline-hint">nt, blocks of</span>
       <input type="number" id="blockLen" value="0" min="0"> <span class="inline-hint">nt (0 = none)</span>
     </div>
@@ -302,9 +302,9 @@ function run(op) {
     let body = r.body.join('\n');
     switch (op) {
       case 'clean':   body = wrapOrFlat(cleanBodyLines(body)); break;
-      case 'revcomp': body = applyFlat(body, s => complement(s).split('').reverse().join('')); break;
+      case 'revcomp': body = applyKeepLines(body, s => complement(s).split('').reverse().join('')); break;
       case 'comp':    body = applyKeepLayout(body, complement); break;
-      case 'rev':     body = applyFlat(body, s => s.split('').reverse().join('')); break;
+      case 'rev':     body = applyKeepLines(body, s => s.split('').reverse().join('')); break;
       case 'dna2rna': body = applyKeepLayout(body, s => s.replace(/T/g,'U').replace(/t/g,'u')); break;
       case 'rna2dna': body = applyKeepLayout(body, s => s.replace(/U/g,'T').replace(/u/g,'t')); break;
       case 'upper':   body = applyKeepLayout(body, s => s.toUpperCase()); break;
@@ -324,6 +324,22 @@ function run(op) {
   }
   function wrapOrFlat(b) { return b; } // cleaned per line, layout preserved minus junk
   function applyFlat(b, fn) { return fn(seqOnly(stripNumbers(b))); }
+  // transform the flattened sequence, then re-flow it into the input's
+  // line/block pattern (position numbers are stripped; re-add if needed)
+  function applyKeepLines(b, fn) {
+    const lines = stripNumbers(b).split('\n').filter(l => l.trim().length);
+    const pattern = lines.map(l => l.split(/\s+/).filter(t => t).map(t => t.length));
+    let flat = fn(seqOnly(stripNumbers(b)));
+    let i = 0;
+    const out = [];
+    for (const toks of pattern) {
+      const parts = [];
+      for (const n of toks) { parts.push(flat.slice(i, i + n)); i += n; }
+      out.push(parts.join(' '));
+    }
+    if (i < flat.length) out.push(flat.slice(i));
+    return out.join('\n');
+  }
   function applyKeepLayout(b, fn) { return fn(b); }
 
   $('out').value = assemble(recs);
