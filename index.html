@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>yaronlab.tools: small utilities for research</title>
+<meta name="description" content="Free, dependency-free browser utilities for everyday research tasks. No accounts, no tracking, everything runs locally.">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --ink: #1a202c;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  header h1 { font-size: 1.9rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header h1 .tld { color: var(--accent); }
+  .tagline { color: var(--muted); font-size: 1rem; margin: 0 0 36px; }
+  .tools { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .tool-card {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  .tool-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.08);
+  }
+  .tool-card h2 { font-size: 1.05rem; margin: 0 0 4px; }
+  .tool-card h2 .path { color: var(--accent); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.95rem; }
+  .tool-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>yaronlab<span class="tld">.tools</span></h1>
+    <p class="tagline">Small, free utilities for everyday research tasks. No accounts, no tracking. Everything runs in your browser.</p>
+  </header>
+
+  <ul class="tools">
+    <!-- TOOL CARDS: copy a <li> block below to add a new tool -->
+    <li>
+      <a class="tool-card" href="/credit/">
+        <h2><span class="path">/credit</span>: CRediT statement generator</h2>
+        <p>Paste an author list, check contributor roles in a grid, and copy a journal-ready CRediT author contribution statement.</p>
+      </a>
+    </li>
+  </ul>
+
+  <footer>
+    Built and maintained by the Yaron lab. Each tool is a single self-contained page, so feel free to save a copy for offline use.
+  </footer>
+</div>
+</body>
+</html>
