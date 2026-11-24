@@ -309,7 +309,7 @@ function run(op) {
       case 'rna2dna': body = applyKeepLayout(body, s => s.replace(/U/g,'T').replace(/u/g,'t')); break;
       case 'upper':   body = applyKeepLayout(body, s => s.toUpperCase()); break;
       case 'lower':   body = applyKeepLayout(body, s => s.toLowerCase()); break;
-      case 'oneline': body = seqOnly(body); break;
+      case 'oneline': body = seqOnly(stripNumbers(body)); break;
       case 'wrap':    body = wrapSeq(seqOnly(stripNumbers(body)), width, block); break;
       case 'numbers': body = addNumbers(body, numStyle); break;
       case 'stripnum':body = stripNumbers(body); break;
