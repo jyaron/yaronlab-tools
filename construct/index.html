@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plasmid Construct Builder | yaronlab.tools</title>
+<meta name="description" content="Assemble a synthesis-ready coding sequence: fusion tags, linkers, codon optimization for mammalian or E. coli expression, Kozak or Shine-Dalgarno, and restriction-site awareness.">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1a202c; --muted: #64748b;
+    --accent: #2563eb; --accent-soft: #dbeafe; --border: #e2e8f0; --radius: 10px;
+    --warn: #b45309; --warn-soft: #fef3c7; --bad: #b91c1c; --bad-soft: #fee2e2;
+    --ok: #15803d; --ok-soft: #dcfce7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         background: var(--bg); color: var(--ink); line-height: 1.5; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+  .site-nav { font-size: 0.85rem; margin-bottom: 18px; }
+  .site-nav a { color: var(--muted); text-decoration: none; }
+  .site-nav a:hover { color: var(--accent); }
+  .site-nav .sep { color: var(--border); margin: 0 6px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 0.92rem; margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 18px 20px; margin-bottom: 18px; }
+  .card h2 { font-size: 1rem; margin: 0 0 4px; }
+  .card h2 .num { color: var(--accent); margin-right: 6px; }
+  .card .note { color: var(--muted); font-size: 0.82rem; margin: 0 0 14px; }
+  label.block { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 6px; }
+  textarea, input[type=text], input[type=number], select {
+    font: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: #fff; color: inherit; }
+  textarea { width: 100%; min-height: 110px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85rem; }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+  .col { display: flex; flex-direction: column; gap: 4px; }
+  .grow { flex: 1 1 220px; }
+  button { font: inherit; font-weight: 600; border: none; border-radius: 8px; padding: 9px 16px; cursor: pointer;
+           background: var(--accent); color: #fff; }
+  button:hover { filter: brightness(1.08); }
+  button.secondary { background: #fff; color: var(--ink); border: 1px solid var(--border); font-weight: 500; }
+  button.tiny { padding: 2px 8px; font-size: 0.78rem; font-weight: 500; background: #fff; color: var(--muted); border: 1px solid var(--border); }
+  button.tiny:hover { color: var(--accent); border-color: var(--accent); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  .pill { display: inline-block; font-size: 0.75rem; padding: 1px 8px; border-radius: 999px;
+          background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .hint { color: var(--muted); font-size: 0.8rem; margin-top: 6px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  /* architecture builder */
+  .arch { border: 1px dashed var(--border); border-radius: 8px; padding: 10px; background: #fcfcfd; }
+  .arch-head { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 6px 0; }
+  .el { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border);
+        border-radius: 7px; padding: 6px 10px; margin-bottom: 6px; font-size: 0.86rem; }
+  .el .nm { font-weight: 600; }
+  .el .sq { color: var(--muted); font-size: 0.76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .el .sp { flex: 1; }
+  .el.gene { background: var(--accent-soft); border-color: var(--accent); }
+  .empty { color: var(--muted); font-size: 0.82rem; padding: 4px 2px; }
+
+  /* enzyme grid */
+  .enz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 10px; margin-top: 6px; }
+  .enz-grid label { font-size: 0.8rem; display: flex; gap: 5px; align-items: baseline; }
+  .enz-grid .seq { color: var(--muted); font-size: 0.72rem; font-family: ui-monospace, Menlo, monospace; }
+  .enz-group { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 12px 0 2px; }
+
+  /* output */
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+  .tabs button { background: none; color: var(--muted); border: none; border-bottom: 2px solid transparent;
+                 border-radius: 0; padding: 7px 12px; font-weight: 500; }
+  .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tabpane { display: none; }
+  .tabpane.on { display: block; }
+  pre.seq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem;
+            line-height: 1.7; white-space: pre-wrap; word-break: break-all; margin: 0; }
+  pre.seq .pos { color: #94a3b8; user-select: none; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.84rem; }
+  th, td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .msg { border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 8px; }
+  .msg.bad  { background: var(--bad-soft);  color: var(--bad); }
+  .msg.warn { background: var(--warn-soft); color: var(--warn); }
+  .msg.ok   { background: var(--ok-soft);   color: var(--ok); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .stat .k { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  .stat .v { font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; }
+  footer a { color: var(--muted); }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.76rem; color: var(--muted); margin-bottom: 10px; }
+
+  /* custom element picker */
+  .partsel { position: relative; }
+  .partsel-btn { width: 100%; text-align: left; background: #fff; color: var(--ink); border: 1px solid var(--border);
+                 font-weight: 500; display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+  .partsel-btn:hover { border-color: var(--accent); }
+  .partsel-btn .caret { margin-left: auto; color: var(--muted); }
+  .partsel-btn .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.2); flex: none; }
+  .partsel-panel { position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; right: 0;
+                   background: #fff; border: 1px solid var(--border); border-radius: 8px;
+                   box-shadow: 0 8px 24px rgba(15,23,42,.14); padding: 8px; max-height: 360px; display: flex; flex-direction: column; }
+  .partsel-panel[hidden] { display: none; }
+  .partsel-search { width: 100%; margin-bottom: 6px; font-size: 0.85rem; }
+  .partsel-list { overflow-y: auto; }
+  .partsel-group { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+                   font-weight: 700; padding: 8px 6px 2px; position: sticky; top: 0; background: #fff; }
+  .partsel-sub { font-size: 0.72rem; color: var(--muted); padding: 4px 6px 2px 14px; font-weight: 600; }
+  .partsel-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.86rem; }
+  .partsel-item:hover, .partsel-item.active { background: var(--accent-soft); }
+  .partsel-item .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.2); flex: none; }
+  .partsel-item .nm { font-weight: 600; }
+  .partsel-item .meta { margin-left: auto; color: var(--muted); font-size: 0.76rem; white-space: nowrap; padding-left: 10px; }
+  .partsel-none { color: var(--muted); font-size: 0.82rem; padding: 8px; }
+
+  .methods-box { width:100%; min-height:200px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                 font-size: 0.82rem; line-height:1.6; border:1px solid var(--border); border-radius:8px; padding:12px; background:#fcfcfd; }
+  .ref-list { font-size: 0.85rem; line-height: 1.55; }
+  .ref-list li { margin-bottom: 8px; }
+  .ref-list a { color: var(--accent); word-break: break-all; }
+  .src-note { font-size: 0.82rem; color: var(--muted); margin: 6px 0 14px; }
+  .legend span b { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>construct</span></nav>
+  <h1>Plasmid Construct Builder</h1>
+  <div class="sub">Assemble a synthesis-ready coding sequence: terminal fusions and affinity tags in the right order,
+    linkers, codon optimization for mammalian or <i>E. coli</i> expression, Kozak or Shine-Dalgarno elements,
+    and restriction-site awareness for the cloning step.</div>
+
+  <div class="card">
+    <h2><span class="num">1</span>Expression host and codon strategy</h2>
+    <p class="note">Codon weights are derived from coding sequences of highly expressed genes in each host
+      (see the Method note at the bottom of the page).</p>
+    <div class="row">
+      <div class="col grow">
+        <label class="block" for="host">Expression host</label>
+        <select id="host">
+          <option value="human">Mammalian (human codon usage)</option>
+          <option value="ecoli">Bacterial (<i>E. coli</i> K-12 codon usage)</option>
+        </select>
+      </div>
+      <div class="col grow">
+        <label class="block" for="strategy">Codon selection</label>
+        <select id="strategy">
+          <option value="weighted">Weighted sampling (recommended)</option>
+          <option value="max">Most frequent codon only</option>
+          <option value="keep">Keep my DNA unchanged (tags still optimized)</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="block" for="seed">Seed</label>
+        <input type="number" id="seed" value="1" style="width:80px">
+      </div>
+      <div class="col">
+        <label class="block" for="gcLo">GC window</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input type="number" id="gcLo" value="35" style="width:62px"> to
+          <input type="number" id="gcHi" value="65" style="width:62px"> %
+        </div>
+      </div>
+    </div>
+    <div class="hint">Weighted sampling draws codons in proportion to their usage in the reference set, which avoids
+      long tracts of a single codon while keeping rare codons out. The seed makes a run reproducible, so you can quote it in a methods section.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span>Gene of interest</h2>
+    <p class="note">Paste protein or DNA. The format is detected automatically; DNA is translated and re-encoded unless you chose to keep it unchanged.</p>
+    <div class="row">
+      <div class="col grow">
+        <label class="block" for="geneName">Construct name</label>
+        <input type="text" id="geneName" value="construct" style="width:100%">
+      </div>
+    </div>
+    <textarea id="geneSeq" placeholder="MGSSHHHHHH... or ATGGGCAGC... (FASTA headers and whitespace are ignored)"></textarea>
+    <div class="hint" id="geneBadge">No sequence yet.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span>Fusion architecture</h2>
+    <p class="note">Elements are translated in the order shown, N-terminus at the top. Add linkers between folded domains.</p>
+    <div class="arch">
+      <div class="arch-head">N-terminal elements</div>
+      <div id="nList"></div>
+      <div class="el gene"><span class="nm">Gene of interest</span><span class="sp"></span><span class="sq" id="geneElInfo"></span></div>
+      <div class="arch-head">C-terminal elements</div>
+      <div id="cList"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="col grow">
+        <label class="block" for="partSelBtn">Add element</label>
+        <div class="partsel" id="partSel">
+          <button type="button" class="partsel-btn" id="partSelBtn" aria-haspopup="listbox" aria-expanded="false">
+            <span id="partSelLabel">Choose an element</span><span class="caret">&#9662;</span>
+          </button>
+          <div class="partsel-panel" id="partSelPanel" hidden>
+            <input type="text" id="partSearch" class="partsel-search" placeholder="Filter elements" autocomplete="off">
+            <div class="partsel-list" id="partSelList" role="listbox"></div>
+          </div>
+          <input type="hidden" id="partPick">
+        </div>
+      </div>
+      <div class="col">
+        <label class="block">&nbsp;</label>
+        <button class="secondary" id="addN">Add to N-terminus</button>
+      </div>
+      <div class="col">
+        <label class="block">&nbsp;</label>
+        <button class="secondary" id="addC">Add to C-terminus</button>
+      </div>
+    </div>
+    <details>
+      <summary style="cursor:pointer;font-size:0.85rem;color:var(--muted)">Add a custom element (your own fusion partner, tag, or signal)</summary>
+      <div class="row" style="margin-top:10px">
+        <div class="col grow"><label class="block" for="cpName">Name</label><input type="text" id="cpName" placeholder="EGFP"></div>
+        <div class="col grow" style="flex:2 1 320px"><label class="block" for="cpSeq">Protein or DNA sequence</label><input type="text" id="cpSeq" class="mono" placeholder="MVSKGEELFT... or ATGGTGAGCAAG..."></div>
+        <div class="col"><label class="block">&nbsp;</label><button class="secondary" id="cpAdd">Save element</button></div>
+      </div>
+      <div class="hint">Fluorescent proteins and solubility partners (MBP, GST, SUMO, thioredoxin, NusA) are built in,
+        with sequences drawn from FPbase and UniProt. Use this field only for a partner that is not listed, or a
+        variant specific to your plasmid; paste the exact sequence so the ordered construct matches what you intend.
+        Saved elements are stored locally for reuse.</div>
+    </details>
+    <div class="btn-row">
+      <label style="font-size:0.85rem"><input type="checkbox" id="autoLink"> Auto-insert a GGGGS linker between adjacent fusion elements</label>
+      <label style="font-size:0.85rem"><input type="checkbox" id="dropMet" checked> Remove the gene's initiator Met when N-terminal elements precede it</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">4</span>Translation signals and flanks</h2>
+    <div class="row">
+      <div class="col grow">
+        <label class="block" for="kozak">5' translation signal</label>
+        <select id="kozak"></select>
+      </div>
+      <div class="col grow">
+        <label class="block" for="stopSel">Stop codon</label>
+        <select id="stopSel">
+          <option value="TAA">TAA (single)</option>
+          <option value="TAATAA">TAA TAA (tandem, recommended)</option>
+          <option value="TGATAA">TGA TAA (tandem)</option>
+          <option value="TGA">TGA (single)</option>
+          <option value="">None (fusion continues in vector)</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="block" for="spacer">RBS spacer (nt)</label>
+        <input type="number" id="spacer" value="7" min="4" max="12" style="width:80px">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col grow">
+        <label class="block" for="flank5">5' flank (cloning adapter)</label>
+        <select id="flank5"></select>
+      </div>
+      <div class="col grow">
+        <label class="block" for="flank3">3' flank (cloning adapter)</label>
+        <select id="flank3"></select>
+      </div>
+      <div class="col">
+        <label class="block" for="pad">Guard bases</label>
+        <input type="number" id="pad" value="6" min="0" max="12" style="width:80px">
+      </div>
+    </div>
+    <div class="hint">Guard bases are added outside each flanking restriction site so the enzyme can cut a linear
+      fragment efficiently. Selected flank sites are automatically excluded from the internal avoidance list.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">5</span>Restriction sites to keep out of the insert</h2>
+    <p class="note">Selected sites are removed from the coding sequence by synonymous codon changes, so they stay
+      unique for cloning. The full construct is also scanned and reported.</p>
+    <div id="enzBox"></div>
+    <div class="row" style="margin-top:12px">
+      <div class="col grow">
+        <label class="block" for="customSites">Additional sequences to avoid (comma separated, IUPAC allowed)</label>
+        <input type="text" id="customSites" class="mono" placeholder="GGTCTC, CACCTGC" style="width:100%">
+      </div>
+    </div>
+    <div class="btn-row">
+      <label style="font-size:0.85rem"><input type="checkbox" id="avoidHomo" checked> Avoid homopolymer runs</label>
+      <label style="font-size:0.85rem"><input type="checkbox" id="avoidHost" checked> Avoid host-specific liabilities (internal RBS, polyadenylation signal)</label>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-bottom:22px">
+    <button id="build">Build construct</button>
+    <button class="secondary" id="loadDemo">Load example</button>
+    <button class="secondary" id="resetAll">Reset</button>
+  </div>
+
+  <div class="card" id="outCard" style="display:none">
+    <div class="tabs" id="tabs">
+      <button data-t="map" class="on">Sequence</button>
+      <button data-t="prot">Protein</button>
+      <button data-t="feat">Features</button>
+      <button data-t="qc">Quality checks</button>
+      <button data-t="sites">Restriction map</button>
+      <button data-t="methods">Methods text</button>
+      <button data-t="refs">References</button>
+      <button data-t="exp">Export</button>
+    </div>
+    <div class="tabpane on" id="pane-map"></div>
+    <div class="tabpane" id="pane-prot"></div>
+    <div class="tabpane" id="pane-feat"></div>
+    <div class="tabpane" id="pane-qc"></div>
+    <div class="tabpane" id="pane-sites"></div>
+    <div class="tabpane" id="pane-methods"></div>
+    <div class="tabpane" id="pane-refs"></div>
+    <div class="tabpane" id="pane-exp"></div>
+  </div>
+
+  <div class="card" id="refsCard">
+    <h2 style="font-size:1.05rem">References and data sources</h2>
+    <p class="src-note">Primary literature for the methods, tags, and fusion partners offered by this tool, with author, year, journal, and DOI. The construct-specific subset is also listed on the References tab after a build.</p>
+    <ol class="ref-list">
+<li>Bajar BT et al. (2016). Improving brightness and photostability of green and red fluorescent proteins for live cell imaging and FRET reporting. <i>Scientific Reports</i>. <a href="https://doi.org/10.1038/srep20889" target="_blank" rel="noopener">https://doi.org/10.1038/srep20889</a></li>
+<li>Bindels DS et al. (2016). mScarlet: a bright monomeric red fluorescent protein for cellular imaging. <i>Nature Methods</i>. <a href="https://doi.org/10.1038/nmeth.4074" target="_blank" rel="noopener">https://doi.org/10.1038/nmeth.4074</a></li>
+<li>Cormack BP et al. (1996). FACS-optimized mutants of the green fluorescent protein (GFP). <i>Gene</i>. <a href="https://doi.org/10.1016/0378-1119(95)00685-0" target="_blank" rel="noopener">https://doi.org/10.1016/0378-1119(95)00685-0</a></li>
+<li>Davis GD et al. (1999). New fusion protein systems designed to give soluble expression inEscherichia coli. <i>Biotechnology and Bioengineering</i>. <a href="https://doi.org/10.1002/(sici)1097-0290(19991120)65:4&lt;382::aid-bit2&gt;3.0.co;2-i" target="_blank" rel="noopener">https://doi.org/10.1002/(sici)1097-0290(19991120)65:4&lt;382::aid-bit2&gt;3.0.co;2-i</a></li>
+<li>di Guan C et al. (1988). Vectors that facilitate the expression and purification of foreign peptides in Escherichia coli by fusion to maltose-binding protein. <i>Gene</i>. <a href="https://doi.org/10.1016/0378-1119(88)90004-2" target="_blank" rel="noopener">https://doi.org/10.1016/0378-1119(88)90004-2</a></li>
+<li>Filonov GS et al. (2011). Bright and stable near-infrared fluorescent protein for in vivo imaging. <i>Nature Biotechnology</i>. <a href="https://doi.org/10.1038/nbt.1918" target="_blank" rel="noopener">https://doi.org/10.1038/nbt.1918</a></li>
+<li>Goedhart J et al. (2012). Structure-guided evolution of cyan fluorescent proteins towards a quantum yield of 93%. <i>Nature Communications</i>. <a href="https://doi.org/10.1038/ncomms1738" target="_blank" rel="noopener">https://doi.org/10.1038/ncomms1738</a></li>
+<li>Griesbeck O et al. (2001). Reducing the Environmental Sensitivity of Yellow Fluorescent Protein. <i>Journal of Biological Chemistry</i>. <a href="https://doi.org/10.1074/jbc.m102815200" target="_blank" rel="noopener">https://doi.org/10.1074/jbc.m102815200</a></li>
+<li>Kapust RB et al. (2001). Tobacco etch virus protease: mechanism of autolysis and rational design of stable mutants with wild-type catalytic proficiency. <i>Protein Engineering, Design and Selection</i>. <a href="https://doi.org/10.1093/protein/14.12.993" target="_blank" rel="noopener">https://doi.org/10.1093/protein/14.12.993</a></li>
+<li>Keppler A et al. (2002). A general method for the covalent labeling of fusion proteins with small molecules in vivo. <i>Nature Biotechnology</i>. <a href="https://doi.org/10.1038/nbt765" target="_blank" rel="noopener">https://doi.org/10.1038/nbt765</a></li>
+<li>Kozak M (1987). An analysis of 5&#x27;-noncoding sequences from 699 vertebrate messenger RNAs. <i>Nucleic Acids Research</i>. <a href="https://doi.org/10.1093/nar/15.20.8125" target="_blank" rel="noopener">https://doi.org/10.1093/nar/15.20.8125</a></li>
+<li>Kremers GJ et al. (2006). Cyan and Yellow Super Fluorescent Proteins with Improved Brightness, Protein Folding, and FRET Förster Radius
+                    &lt;sup&gt;,&lt;/sup&gt;. <i>Biochemistry</i>. <a href="https://doi.org/10.1021/bi0516273" target="_blank" rel="noopener">https://doi.org/10.1021/bi0516273</a></li>
+<li>LaVallie ER et al. (1993). A Thioredoxin Gene Fusion Expression System That Circumvents Inclusion Body Formation in the E. coli Cytoplasm. <i>Nature Biotechnology</i>. <a href="https://doi.org/10.1038/nbt0293-187" target="_blank" rel="noopener">https://doi.org/10.1038/nbt0293-187</a></li>
+<li>Los GV et al. (2008). HaloTag: A Novel Protein Labeling Technology for Cell Imaging and Protein Analysis. <i>ACS Chemical Biology</i>. <a href="https://doi.org/10.1021/cb800025k" target="_blank" rel="noopener">https://doi.org/10.1021/cb800025k</a></li>
+<li>Malakhov MP et al. (2004). SUMO fusions and SUMO-specific protease for efficient expression and purification of proteins. <i>Journal of Structural and Functional Genomics</i>. <a href="https://doi.org/10.1023/b:jsfg.0000029237.70316.52" target="_blank" rel="noopener">https://doi.org/10.1023/b:jsfg.0000029237.70316.52</a></li>
+<li>Markwardt ML et al. (2011). An Improved Cerulean Fluorescent Protein with Enhanced Brightness and
+                    Reduced Reversible Photoswitching. <i>PLoS ONE</i>. <a href="https://doi.org/10.1371/journal.pone.0017896" target="_blank" rel="noopener">https://doi.org/10.1371/journal.pone.0017896</a></li>
+<li>Ormö M et al. (1996). Crystal Structure of the
+            &lt;b&gt;
+              &lt;i&gt;Aequorea victoria&lt;/i&gt;
+            &lt;/b&gt;
+            Green Fluorescent Protein. <i>Science</i>. <a href="https://doi.org/10.1126/science.273.5280.1392" target="_blank" rel="noopener">https://doi.org/10.1126/science.273.5280.1392</a></li>
+<li>Pédelacq JD et al. (2005). Engineering and characterization of a superfolder green fluorescent protein. <i>Nature Biotechnology</i>. <a href="https://doi.org/10.1038/nbt1172" target="_blank" rel="noopener">https://doi.org/10.1038/nbt1172</a></li>
+<li>Schmidt TG &amp; Skerra A (2007). The Strep-tag system for one-step purification and high-affinity detection or capturing of proteins. <i>Nature Protocols</i>. <a href="https://doi.org/10.1038/nprot.2007.209" target="_blank" rel="noopener">https://doi.org/10.1038/nprot.2007.209</a></li>
+<li>Shaner NC et al. (2004). Improved monomeric red, orange and yellow fluorescent proteins derived from Discosoma sp. red fluorescent protein. <i>Nature Biotechnology</i>. <a href="https://doi.org/10.1038/nbt1037" target="_blank" rel="noopener">https://doi.org/10.1038/nbt1037</a></li>
+<li>Shaner NC et al. (2008). Improving the photostability of bright monomeric orange and red fluorescent proteins. <i>Nature Methods</i>. <a href="https://doi.org/10.1038/nmeth.1209" target="_blank" rel="noopener">https://doi.org/10.1038/nmeth.1209</a></li>
+<li>Shaner NC et al. (2013). A bright monomeric green fluorescent protein derived from Branchiostoma lanceolatum. <i>Nature Methods</i>. <a href="https://doi.org/10.1038/nmeth.2413" target="_blank" rel="noopener">https://doi.org/10.1038/nmeth.2413</a></li>
+<li>Sharp PM &amp; Li WH (1987). The codon adaptation index-a measure of directional synonymous codon usage bias, and its potential applications. <i>Nucleic Acids Research</i>. <a href="https://doi.org/10.1093/nar/15.3.1281" target="_blank" rel="noopener">https://doi.org/10.1093/nar/15.3.1281</a></li>
+<li>Shcherbo D et al. (2009). Far-red fluorescent tags for protein imaging in living tissues. <i>Biochemical Journal</i>. <a href="https://doi.org/10.1042/bj20081949" target="_blank" rel="noopener">https://doi.org/10.1042/bj20081949</a></li>
+<li>Shine J &amp; Dalgarno L (1974). The 3′-Terminal Sequence of
+                    &lt;i&gt;Escherichia coli&lt;/i&gt;
+                    16S Ribosomal RNA: Complementarity to Nonsense Triplets and Ribosome Binding Sites. <i>Proceedings of the National Academy of Sciences</i>. <a href="https://doi.org/10.1073/pnas.71.4.1342" target="_blank" rel="noopener">https://doi.org/10.1073/pnas.71.4.1342</a></li>
+<li>Smith DB &amp; Johnson KS (1988). Single-step purification of polypeptides expressed in Escherichia coli as fusions with glutathione S-transferase. <i>Gene</i>. <a href="https://doi.org/10.1016/0378-1119(88)90005-4" target="_blank" rel="noopener">https://doi.org/10.1016/0378-1119(88)90005-4</a></li>
+<li>Subach OM et al. (2008). Conversion of Red Fluorescent Protein into a Bright Blue Probe. <i>Chemistry &amp;amp; Biology</i>. <a href="https://doi.org/10.1016/j.chembiol.2008.08.006" target="_blank" rel="noopener">https://doi.org/10.1016/j.chembiol.2008.08.006</a></li>
+<li>Subach OM et al. (2011). An Enhanced Monomeric Blue Fluorescent Protein with the High Chemical Stability of the Chromophore. <i>PLoS ONE</i>. <a href="https://doi.org/10.1371/journal.pone.0028674" target="_blank" rel="noopener">https://doi.org/10.1371/journal.pone.0028674</a></li>
+<li>Zacharias DA et al. (2002). Partitioning of Lipid-Modified Monomeric GFPs into Membrane Microdomains of Live Cells. <i>Science</i>. <a href="https://doi.org/10.1126/science.1068539" target="_blank" rel="noopener">https://doi.org/10.1126/science.1068539</a></li>
+    </ol>
+    <h2 style="font-size:0.95rem;margin-top:18px">Sequence and codon-usage sources</h2>
+    <ul class="ref-list">
+      <li>Fluorescent protein sequences and spectra: <a href="https://www.fpbase.org" target="_blank" rel="noopener">FPbase</a> (Lambert TJ, 2019, Nature Methods, <a href="https://doi.org/10.1038/s41592-019-0352-8" target="_blank" rel="noopener">https://doi.org/10.1038/s41592-019-0352-8</a>).</li>
+      <li>Solubility and affinity partner sequences: <a href="https://www.uniprot.org" target="_blank" rel="noopener">UniProt</a> (MBP P0AEX9, GST P08515, SUMO Q12306 and P55854, thioredoxin P0AA25, NusA P0AFF6).</li>
+      <li>HaloTag and SNAP-tag sequences: NCBI Protein synthetic-construct records, verified against the canonical termini and active-site residues.</li>
+      <li>Codon-usage tables: computed from coding sequences of highly expressed genes retrieved from NCBI (E. coli K-12 MG1655, 97 sequences; human RefSeq Select, 49 transcripts).</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p><b>Method note.</b> Codon usage weights were computed from the coding sequences of highly expressed genes
+      retrieved from NCBI: 97 <i>E. coli</i> K-12 MG1655 sequences (ribosomal proteins, elongation factors, glycolytic
+      enzymes, abundant outer-membrane and chaperone genes; 26,556 codons) and 49 human RefSeq Select transcripts
+      (cytoskeletal, ribosomal, glycolytic and chaperone genes; 19,131 codons). For each amino acid the relative
+      adaptiveness w of a codon is its frequency divided by that of the most frequent synonymous codon, which is the
+      standard basis for the codon adaptation index reported in the quality checks.</p>
+    <p><b>Fusion partner sequences.</b> The 20 fluorescent proteins are the canonical records from FPbase; the
+      solubility and affinity partners (MBP, GST, SUMO, thioredoxin, NusA) are from UniProt, with MBP given as the
+      mature chain and both SUMO variants trimmed to the C-terminal Gly-Gly so SUMO or SENP proteases leave a native
+      N-terminus. Accessions are listed in each element's note. Protein elements are codon-optimized for the chosen
+      host exactly like the gene of interest.</p>
+    <p>Check every construct against your own plasmid map before ordering, and follow your institution's biosafety review for any sequence you send for synthesis.</p>
+  </footer>
+</div>
+<script>
+"use strict";
+const CODON = {"human":{"AAA":["K",0.628,0.3858,31.41],"AAC":["N",1.0,0.5929,21.85],"AAG":["K",1.0,0.6142,50.02],"AAT":["N",0.6866,0.4071,15.0],"ACA":["T",0.5199,0.2045,12.28],"ACC":["T",1.0,0.3934,23.63],"ACG":["T",0.1615,0.0635,3.82],"ACT":["T",0.8606,0.3386,20.33],"AGA":["R",0.7198,0.1767,8.73],"AGC":["S",0.5775,0.1636,10.72],"AGG":["R",0.5905,0.145,7.16],"AGT":["S",0.4451,0.1261,8.26],"ATA":["I",0.1227,0.0663,3.55],"ATC":["I",1.0,0.54,28.96],"ATG":["M",1.0,1.0,23.73],"ATT":["I",0.7292,0.3938,21.12],"CAA":["Q",0.3271,0.2465,9.1],"CAC":["H",1.0,0.5572,9.93],"CAG":["Q",1.0,0.7535,27.81],"CAT":["H",0.7947,0.4428,7.89],"CCA":["P",0.8729,0.301,18.66],"CCC":["P",1.0,0.3449,21.38],"CCG":["P",0.11,0.0379,2.35],"CCT":["P",0.9169,0.3162,19.6],"CGA":["R",0.4655,0.1143,5.65],"CGC":["R",1.0,0.2455,12.13],"CGG":["R",0.5172,0.127,6.27],"CGT":["R",0.7802,0.1915,9.46],"CTA":["L",0.1452,0.0585,4.7],"CTC":["L",0.4565,0.184,14.79],"CTG":["L",1.0,0.4031,32.41],"CTT":["L",0.3839,0.1547,12.44],"GAA":["E",0.7018,0.4124,30.27],"GAC":["D",1.0,0.5,28.64],"GAG":["E",1.0,0.5876,43.12],"GAT":["D",1.0,0.5,28.64],"GCA":["A",0.4859,0.1916,15.26],"GCC":["A",0.9068,0.3576,28.49],"GCG":["A",0.1431,0.0564,4.5],"GCT":["A",1.0,0.3944,31.41],"GGA":["G",0.7297,0.2298,17.35],"GGC":["G",1.0,0.3149,23.78],"GGG":["G",0.5736,0.1806,13.64],"GGT":["G",0.8725,0.2747,20.75],"GTA":["V",0.2482,0.1076,7.37],"GTC":["V",0.5299,0.2296,15.73],"GTG":["V",1.0,0.4333,29.69],"GTT":["V",0.5299,0.2296,15.73],"TAC":["Y",1.0,0.5521,14.11],"TAT":["Y",0.8111,0.4479,11.45],"TCA":["S",0.4254,0.1205,7.89],"TCC":["S",0.938,0.2658,17.41],"TCG":["S",0.1437,0.0407,2.67],"TCT":["S",1.0,0.2833,18.56],"TGC":["C",1.0,0.5475,6.32],"TGG":["W",1.0,1.0,7.63],"TGT":["C",0.8264,0.4525,5.23],"TTA":["L",0.1323,0.0533,4.29],"TTC":["F",1.0,0.5142,17.04],"TTG":["L",0.3629,0.1463,11.76],"TTT":["F",0.9448,0.4858,16.1]},"ecoli":{"AAA":["K",1.0,0.7751,57.5],"AAC":["N",1.0,0.8886,33.33],"AAG":["K",0.2901,0.2249,16.68],"AAT":["N",0.1254,0.1114,4.18],"ACA":["T",0.065,0.0331,1.77],"ACC":["T",1.0,0.5095,27.23],"ACG":["T",0.1342,0.0684,3.65],"ACT":["T",0.7635,0.389,20.79],"AGA":["R",0.0071,0.005,0.3],"AGC":["S",0.5438,0.215,10.28],"AGG":["R",0.0,0.0,0.0],"AGT":["S",0.0717,0.0283,1.36],"ATA":["I",0.0039,0.003,0.19],"ATC":["I",1.0,0.7809,48.31],"ATG":["M",1.0,1.0,25.46],"ATT":["I",0.2767,0.2161,13.37],"CAA":["Q",0.1855,0.1564,5.57],"CAC":["H",1.0,0.7872,13.93],"CAG":["Q",1.0,0.8436,30.05],"CAT":["H",0.2703,0.2128,3.77],"CCA":["P",0.1709,0.1275,4.52],"CCC":["P",0.0128,0.0096,0.34],"CCG":["P",1.0,0.746,26.43],"CCT":["P",0.1567,0.1169,4.14],"CGA":["R",0.008,0.0056,0.34],"CGC":["R",0.4219,0.2927,17.81],"CGG":["R",0.0045,0.0031,0.19],"CGT":["R",1.0,0.6937,42.21],"CTA":["L",0.0035,0.003,0.23],"CTC":["L",0.0701,0.0591,4.52],"CTG":["L",1.0,0.8425,64.47],"CTT":["L",0.0514,0.0433,3.31],"GAA":["E",1.0,0.7878,61.38],"GAC":["D",1.0,0.6289,35.36],"GAG":["E",0.2693,0.2122,16.53],"GAT":["D",0.59,0.3711,20.86],"GCA":["A",0.6763,0.2644,27.23],"GCC":["A",0.2554,0.0998,10.28],"GCG":["A",0.6268,0.245,25.23],"GCT":["A",1.0,0.3909,40.25],"GGA":["G",0.0153,0.0089,0.75],"GGC":["G",0.6799,0.395,33.51],"GGG":["G",0.026,0.0151,1.28],"GGT":["G",1.0,0.581,49.29],"GTA":["V",0.4913,0.2422,21.24],"GTC":["V",0.1707,0.0842,7.38],"GTG":["V",0.3667,0.1808,15.85],"GTT":["V",1.0,0.4929,43.23],"TAC":["Y",1.0,0.7295,16.76],"TAT":["Y",0.3708,0.2705,6.21],"TCA":["S",0.0817,0.0323,1.54],"TCC":["S",0.745,0.2945,14.08],"TCG":["S",0.0876,0.0346,1.66],"TCT":["S",1.0,0.3953,18.9],"TGC":["C",1.0,0.5975,3.58],"TGG":["W",1.0,1.0,5.12],"TGT":["C",0.6737,0.4025,2.41],"TTA":["L",0.0263,0.0221,1.69],"TTC":["F",1.0,0.7831,23.38],"TTG":["L",0.0356,0.03,2.3],"TTT":["F",0.277,0.2169,6.48]}};
+const PARTLIB = [{"id":"his6","name":"6xHis","grp":"Affinity tags","aa":"HHHHHH","note":"IMAC purification"},{"id":"his8","name":"8xHis","grp":"Affinity tags","aa":"HHHHHHHH","note":"IMAC, tighter binding than 6xHis"},{"id":"his10","name":"10xHis","grp":"Affinity tags","aa":"HHHHHHHHHH","note":"IMAC under denaturing conditions"},{"id":"strep2","name":"Strep-tag II","grp":"Affinity tags","aa":"WSHPQFEK","note":"Strep-Tactin purification","cite":"10.1038/nprot.2007.209"},{"id":"twinstrep","name":"Twin-Strep-tag","grp":"Affinity tags","aa":"WSHPQFEKGGGSGGGSGGSAWSHPQFEK","note":"High-affinity Strep-Tactin purification","cite":"10.1038/nprot.2007.209"},{"id":"sbp","name":"SBP tag","grp":"Affinity tags","aa":"MDEKTTGWRGGHVVEGLAGELEQLRARLEHHPQGQREP","note":"Streptavidin-binding peptide"},{"id":"stag","name":"S-tag","grp":"Affinity tags","aa":"KETAAAKFERQHMDS","note":"S-protein affinity and detection"},{"id":"avi","name":"AviTag","grp":"Affinity tags","aa":"GLNDIFEAQKIEWHE","note":"BirA biotinylation site"},{"id":"flag","name":"FLAG","grp":"Epitope tags","aa":"DYKDDDDK","note":"Anti-FLAG M2 detection and elution"},{"id":"flag3","name":"3xFLAG","grp":"Epitope tags","aa":"DYKDHDGDYKDHDIDYKDDDDK","note":"Higher sensitivity than 1xFLAG"},{"id":"ha","name":"HA","grp":"Epitope tags","aa":"YPYDVPDYA","note":"Influenza hemagglutinin epitope"},{"id":"ha3","name":"3xHA","grp":"Epitope tags","aa":"YPYDVPDYAYPYDVPDYAYPYDVPDYA","note":"Tandem HA epitope"},{"id":"myc","name":"Myc","grp":"Epitope tags","aa":"EQKLISEEDL","note":"9E10 epitope"},{"id":"myc3","name":"3xMyc","grp":"Epitope tags","aa":"EQKLISEEDLEQKLISEEDLEQKLISEEDL","note":"Tandem Myc epitope"},{"id":"v5","name":"V5","grp":"Epitope tags","aa":"GKPIPNPLLGLDST","note":"V5 epitope"},{"id":"t7tag","name":"T7 tag","grp":"Epitope tags","aa":"MASMTGGQQMG","note":"T7 gene10 leader epitope"},{"id":"alfa","name":"ALFA tag","grp":"Epitope tags","aa":"SRLEEELRRRLTE","note":"Small helical epitope for nanobody detection"},{"id":"sol_sumoyeastsmt3","name":"SUMO (yeast Smt3)","grp":"Solubility & affinity partners","aa":"MSDSEVNQEAKPEVKPEVKPETHINLKVSDGSSEIFFKIKKTTPLRRLMEAFAKRQGKEMDSLRFLYDGIRIQADQTPEDLDMEDNDIIEAHREQIGG","note":"Cleavable solubility tag ending in the di-Gly motif; SUMO protease (Ulp1) cuts after the Gly-Gly to leave a native N-terminus on the downstream protein. Place directly before the gene. Source: UniProt Q12306 (yeast SMT3), residues 1-98.","cite":"10.1023/b:jsfg.0000029237.70316.52"},{"id":"sol_sumohumansumo3","name":"SUMO (human SUMO3)","grp":"Solubility & affinity partners","aa":"MSEEKPKEGVKTENDHINLKVAGQDGSVVQFKIKRHTPLSKLMKAYCERQGLSMRQIRFRFDGQPINETDTPAQLEMEDEDTIDVFQQQTGG","note":"Human SUMO3, cleavable by SENP proteases after the C-terminal Gly-Gly to leave a native N-terminus. Place directly before the gene. Source: UniProt P55854, residues 1-92.","cite":"10.1023/b:jsfg.0000029237.70316.52"},{"id":"sol_thioredoxintrxa","name":"Thioredoxin (TrxA)","grp":"Solubility & affinity partners","aa":"MSDKIIHLTDDSFDTDVLKADGAILVDFWAEWCGPCKMIAPILDEIADEYQGKLTVAKLNIDQNPGTAPKYGIRGIPTLLLFKNGEVAATKVGALSKGQLKEFLDANLA","note":"Thioredoxin solubility and redox tag (pET-32 style). Source: UniProt P0AA25 (E. coli trxA).","cite":"10.1038/nbt0293-187"},{"id":"sol_gst","name":"GST","grp":"Solubility & affinity partners","aa":"MSPILGYWKIKGLVQPTRLLLEYLEEKYEEHLYERDEGDKWRNKKFELGLEFPNLPYYIDGDVKLTQSMAIIRYIADKHNMLGGCPKERAEISMLEGAVLDIRYGVSRIAYSKDFETLKVDFLSKLPEMLKMFEDRLCHKTYLNGDHVTHPDFMLYDALDVVLYMDPMCLDAFPKLVCFKKRIEAIPQIDKYLKSSKYIAWPLQGWQATFGGGDHPPK","note":"Glutathione S-transferase (Sj26), the pGEX tag. Glutathione-resin purification and solubility. Source: UniProt P08515 (S. japonicum).","cite":"10.1016/0378-1119(88)90005-4"},{"id":"sol_mbp","name":"MBP","grp":"Solubility & affinity partners","aa":"KIEEGKLVIWINGDKGYNGLAEVGKKFEKDTGIKVTVEHPDKLEEKFPQVAATGDGPDIIFWAHDRFGGYAQSGLLAEITPDKAFQDKLYPFTWDAVRYNGKLIAYPIAVEALSLIYNKDLLPNPPKTWEEIPALDKELKAKGKSALMFNLQEPYFTWPLIAADGGYAFKYENGKYDIKDVGVDNAGAKAGLTFLVDLIKNKHMNADTDYSIAEAAFNKGETAMTINGPWAWSNIDTSKVNYGVTVLPTFKGQPSKPFVGVLSAGINAASPNKELAKEFLENYLLTDEGLEAVNKDKPLGAVALKSYEEELAKDPRIAATMENAQKGEIMPNIPQMSAFWYAVRTAVINAASGRQTVDEALKDAQTRITK","note":"Maltose-binding protein, mature chain (signal peptide removed). Strong solubility enhancer; amylose-resin purification. Source: UniProt P0AEX9 (E. coli malE), residues 27-396.","cite":"10.1016/0378-1119(88)90004-2"},{"id":"sol_nusa","name":"NusA","grp":"Solubility & affinity partners","aa":"MNKEILAVVEAVSNEKALPREKIFEALESALATATKKKYEQEIDVRVQIDRKSGDFDTFRRWLVVDEVTQPTKEITLEAARYEDESLNLGDYVEDQIESVTFDRITTQTAKQVIVQKVREAERAMVVDQFREHEGEIITGVVKKVNRDNISLDLGNNAEAVILREDMLPRENFRPGDRVRGVLYSVRPEARGAQLFVTRSKPEMLIELFRIEVPEIGEEVIEIKAAARDPGSRAKIAVKTNDKRIDPVGACVGMRGARVQAVSTELGGERIDIVLWDDNPAQFVINAMAPADVASIVVDEDKHTMDIAVEAGNLAQAIGRNGQNVRLASQLSGWELNVMTVDDLQAKHQAEAHAAIDTFTKYLDIDEDFATVLVEEGFSTLEELAYVPMKELLEIEGLDEPTVEALRERAKNALATIAQAQEESLGDNKPADDLLNLEGVDRDLAFKLAARGVCTLEDLAEQGIDDLADIEGLTDEKAGALIMAARNICWFGDEA","note":"Large solubility enhancer for difficult E. coli targets (pET-44 style). Source: UniProt P0AFF6 (E. coli).","cite":"10.1002/(sici)1097-0290(19991120)65:4<382::aid-bit2>3.0.co;2-i"},{"id":"fp_mtagbfp2","name":"mTagBFP2","grp":"Fluorescent proteins","aa":"MVSKGEELIKENMHMKLYMEGTVDNHHFKCTSEGEGKPYEGTQTMRIKVVEGGPLPFAFDILATSFLYGSKTFINHTQGIPDFFKQSFPEGFTWERVTTYEDGGVLTATQDTSLQDGCLIYNVKIRGVNFTSNGPVMQKKTLGWEAFTETLYPADGGLEGRNDMALKLVGGSHLIANAKTTYRSKKPAKNLKMPGVYYVDYRLERIKEANNETYVEQHEVAVARYCDLPSKLGHKLN","note":"ex/em 399/454 nm. Improved monomeric blue FP, brighter and more photostable than TagBFP. Source: FPbase mtagbfp2.","ex":399,"em":454,"cite":"10.1371/journal.pone.0028674","sub":"Blue"},{"id":"fp_tagbfp","name":"TagBFP","grp":"Fluorescent proteins","aa":"MSELIKENMHMKLYMEGTVDNHHFKCTSEGEGKPYEGTQTMRIKVVEGGPLPFAFDILATSFLYGSKTFINHTQGIPDFFKQSFPEGFTWERVTTYEDGGVLTATQDTSLQDGCLIYNVKIRGVNFTSNGPVMQKKTLGWEAFTETLYPADGGLEGRNDMALKLVGGSHLIANIKTTYRSKKPAKNLKMPGVYYVDYRLERIKEANNETYVEQHEVAVARYCDLPSKLGHKLN","note":"ex/em 402/457 nm. Bright monomeric blue FP. Source: FPbase tagbfp.","ex":402,"em":457,"cite":"10.1016/j.chembiol.2008.08.006","sub":"Blue"},{"id":"fp_mturquoise2","name":"mTurquoise2","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLSWGVQCFARYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYFSDNVYITADKQKNGIKANFKIRHNIEDGGVQLADHYQQNTPIGDGPVLLPDNHYLSTQSKLSKDPNEKRDHMVLLEFVTAAGITLGMDELYK","note":"ex/em 434/474 nm. Bright monomeric cyan FP, high quantum yield; good FRET donor. Source: FPbase mturquoise2.","ex":434,"em":474,"cite":"10.1038/ncomms1738","sub":"Cyan"},{"id":"fp_mcerulean3","name":"mCerulean3","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLSWGVQCFARYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNAIHGNVYITADKQKNGIKANFGLNCNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSKLSKDPNEKRDHMVLLEFVTAAGITLGMDELYK","note":"ex/em 433/475 nm. Monomeric cyan FP, improved brightness and photostability. Source: FPbase mcerulean3.","ex":433,"em":475,"cite":"10.1371/journal.pone.0017896","sub":"Cyan"},{"id":"fp_egfp","name":"EGFP","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK","note":"ex/em 488/507 nm. Enhanced GFP (F64L/S65T). Weakly dimerizing; use mEGFP for fusions sensitive to oligomerization. Source: FPbase egfp.","ex":488,"em":507,"cite":"10.1016/0378-1119(95)00685-0","sub":"Green"},{"id":"fp_megfp","name":"mEGFP","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSKLSKDPNEKRDHMVLLEFVTAAGITLGMDELYK","note":"ex/em 488/507 nm. Monomeric EGFP (A206K). Preferred GFP for fusions. Source: FPbase megfp.","ex":488,"em":507,"cite":"10.1126/science.1068539","sub":"Green"},{"id":"fp_superfoldergfp","name":"Superfolder GFP","grp":"Fluorescent proteins","aa":"MSKGEELFTGVVPILVELDGDVNGHKFSVRGEGEGDATNGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKRHDFFKSAMPEGYVQERTISFKDDGTYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNFNSHNVYITADKQKNGIKANFKIRHNVEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSVLSKDPNEKRDHMVLLEFVTAAGITHGMDELYK","note":"ex/em 485/510 nm. Fast, robust folding even on poorly folded partners. Source: FPbase superfolder-gfp.","ex":485,"em":510,"cite":"10.1038/nbt1172","sub":"Green"},{"id":"fp_mneongreen","name":"mNeonGreen","grp":"Fluorescent proteins","aa":"MVSKGEEDNMASLPATHELHIFGSINGVDFDMVGQGTGNPNDGYEELNLKSTKGDLQFSPWILVPHIGYGFHQYLPYPDGMSPFQAAMVDGSGYQVHRTMQFEDGASLTVNYRYTYEGSHIKGEAQVKGTGFPADGPVMTNSLTAADWCRSKKTYPNDKTIISTFKWSYTTGNGKRYRSTARTTYTFAKPMAANYLKNQPMYVFRKTELKHSKTELNFKEWQKAFTDVMGMDELYK","note":"ex/em 506/517 nm. Bright monomeric green/yellow; derived from LanYFP. Source: FPbase mneongreen.","ex":506,"em":517,"cite":"10.1038/nmeth.2413","sub":"Green"},{"id":"fp_mclover3","name":"mClover3","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVRGEGEGDATNGKLTLKFICTTGKLPVPWPTLVTTFGYGVACFSRYPDHMKQHDFFKSAMPEGYVQERTISFKDDGTYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNFNSHYVYITADKQKNCIKANFKIRHNVEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSHQSKLSKDPNEKRDHMVLLEFVTAAGITHGMDELYK","note":"ex/em 506/518 nm. Bright monomeric green FP, improved photostability. Source: FPbase mclover3.","ex":506,"em":518,"cite":"10.1038/srep20889","sub":"Green"},{"id":"fp_eyfp","name":"EYFP","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFGYGLQCFARYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSYQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK","note":"ex/em 513/527 nm. Enhanced yellow FP. Dimerizing tendency. Source: FPbase eyfp.","ex":513,"em":527,"cite":"10.1126/science.273.5280.1392","sub":"Yellow"},{"id":"fp_mvenus","name":"mVenus","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKLICTTGKLPVPWPTLVTTLGYGLQCFARYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYITADKQKNGIKANFKIRHNIEDGGVQLADHYQQNTPIGDGPVLLPDNHYLSYQSKLSKDPNEKRDHMVLLEFVTAAGITLGMDELYK","note":"ex/em 515/527 nm. Monomeric fast-maturing yellow FP. Source: FPbase mvenus.","ex":515,"em":527,"cite":"10.1021/bi0516273","sub":"Yellow"},{"id":"fp_citrine","name":"Citrine","grp":"Fluorescent proteins","aa":"MVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFGYGLMCFARYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSYQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYK","note":"ex/em 516/529 nm. Fluorescent protein. Source: FPbase citrine.","ex":516,"em":529,"cite":"10.1074/jbc.m102815200","sub":"Yellow"},{"id":"fp_morange2","name":"mOrange2","grp":"Fluorescent proteins","aa":"MVSKGEENNMAIIKEFMRFKVRMEGSVNGHEFEIEGEGEGRPYEGFQTAKLKVTKGGPLPFAWDILSPHFTYGSKAYVKHPADIPDYFKLSFPEGFKWERVMNYEDGGVVTVTQDSSLQDGEFIYKVKLRGTNFPSDGPVMQKKTMGWEASSERMYPEDGALKGKIKMRLKLKDGGHYTSEVKTTYKAKKPVQLPGAYIVDIKLDITSHNEDYTIVEQYERAEGRHSTGGMDELYK","note":"ex/em 549/565 nm. Monomeric orange FP, more photostable than mOrange. Source: FPbase morange2.","ex":549,"em":565,"cite":"10.1038/nmeth.1209","sub":"Orange"},{"id":"fp_dtomato","name":"dTomato","grp":"Fluorescent proteins","aa":"MVSKGEEVIKEFMRFKVRMEGSMNGHEFEIEGEGEGRPYEGTQTAKLKVTKGGPLPFAWDILSPQFMYGSKAYVKHPADIPDYKKLSFPEGFKWERVMNFEDGGLVTVTQDSSLQDGTLIYKVKMRGTNFPPDGPVMQKKTMGWEASTERLYPRDGVLKGEIHQALKLKDGGHYLVEFKTIYMAKKPVQLPGYYYVDTKLDITSHNEDYTIVEQYERSEGRHHLFLYGMDELYK","note":"ex/em 554/581 nm. Tandem-dimer-derived orange-red FP unit; very bright and photostable. Source: FPbase dtomato.","ex":554,"em":581,"cite":"10.1038/nbt1037","sub":"Orange"},{"id":"fp_mruby3","name":"mRuby3","grp":"Fluorescent proteins","aa":"MVSKGEELIKENMRMKVVMEGSVNGHQFKCTGEGEGRPYEGVQTMRIKVIEGGPLPFAFDILATSFMYGSRTFIKYPADIPDFFKQSFPEGFTWERVTRYEDGGVVTVTQDTSLEDGELVYNVKVRGVNFPSNGPVMQKKTKGWEPNTEMMYPADGGLRGYTDIALKVDGGGHLHCNFVTTYRSKKTVGNIKMPGVHAVDHRLERIEESDNETYVVQREVAVAKYSNLGGGMDELYK","note":"ex/em 558/592 nm. Bright monomeric red FP. Source: FPbase mruby3.","ex":558,"em":592,"cite":"10.1038/srep20889","sub":"Red"},{"id":"fp_mapple","name":"mApple","grp":"Fluorescent proteins","aa":"MVSKGEENNMAIIKEFMRFKVHMEGSVNGHEFEIEGEGEGRPYEAFQTAKLKVTKGGPLPFAWDILSPQFMYGSKVYIKHPADIPDYFKLSFPEGFRWERVMNFEDGGIIHVNQDSSLQDGVFIYKVKLRGTNFPSDGPVMQKKTMGWEASEERMYPEDGALKSEIKKRLKLKDGGHYAAEVKTTYKAKKPVQLPGAYIVDIKLDIVSHNEDYTIVEQYERAEGRHSTGGMDELYK","note":"ex/em 568/592 nm. Monomeric orange-red FP. Source: FPbase mapple.","ex":568,"em":592,"cite":"10.1038/nmeth.1209","sub":"Red"},{"id":"fp_mscarleti","name":"mScarlet-I","grp":"Fluorescent proteins","aa":"MVSKGEAVIKEFMRFKVHMEGSMNGHEFEIEGEGEGRPYEGTQTAKLKVTKGGPLPFSWDILSPQFMYGSRAFIKHPADIPDYYKQSFPEGFKWERVMNFEDGGAVTVTQDTSLEDGTLIYKVKLRGTNFPPDGPVMQKKTMGWEASTERLYPEDGVLKGDIKMALRLKDGGRYLADFKTTYKAKKPVQMPGAYNVDRKLDITSHNEDYTVVEQYERSEGRHSTGGMDELYK","note":"ex/em 569/593 nm. Bright monomeric red FP with fast maturation. Source: FPbase mscarlet-i.","ex":569,"em":593,"cite":"10.1038/nmeth.4074","sub":"Red"},{"id":"fp_mcherry","name":"mCherry","grp":"Fluorescent proteins","aa":"MVSKGEEDNMAIIKEFMRFKVHMEGSVNGHEFEIEGEGEGRPYEGTQTAKLKVTKGGPLPFAWDILSPQFMYGSKAYVKHPADIPDYLKLSFPEGFKWERVMNFEDGGVVTVTQDSSLQDGEFIYKVKLRGTNFPSDGPVMQKKTMGWEASSERMYPEDGALKGEIKQRLKLKDGGHYDAEVKTTYKAKKPVQLPGAYNVNIKLDITSHNEDYTIVEQYERAEGRHSTGGMDELYK","note":"ex/em 587/610 nm. Workhorse monomeric red FP. Source: FPbase mcherry.","ex":587,"em":610,"cite":"10.1038/nbt1037","sub":"Red"},{"id":"fp_mkate2","name":"mKate2","grp":"Fluorescent proteins","aa":"MVSELIKENMHMKLYMEGTVNNHHFKCTSEGEGKPYEGTQTMRIKAVEGGPLPFAFDILATSFMYGSKTFINHTQGIPDFFKQSFPEGFTWERVTTYEDGGVLTATQDTSLQDGCLIYNVKIRGVNFPSNGPVMQKKTLGWEASTETLYPADGGLEGRADMALKLVGGGHLICNLKTTYRSKKPAKNLKMPGVYYVDRRLERIKEADKETYVEQHEVAVARYCDLPSKLGHR","note":"ex/em 588/633 nm. Monomeric far-red FP. Source: FPbase mkate2.","ex":588,"em":633,"cite":"10.1042/bj20081949","sub":"Red"},{"id":"fp_irfp713","name":"iRFP713","grp":"Fluorescent proteins","aa":"MAEGSVARQPDLLTCDDEPIHIPGAIQPHGLLLALAADMTIVAGSDNLPELTGLAIGALIGRSAADVFDSETHNRLTIALAEPGAAVGAPITVGFTMRKDAGFIGSWHRHDQLIFLELEPPQRDVAEPQAFFRRTNSAIRRLQAAETLESACAAAAQEVRKITGFDRVMIYRFASDFSGEVIAEDRCAEVESKLGLHYPASTVPAQARRLYTINPVRIIPDINYRPVPVTPDLNPVTGRPIDLSFAILRSVSPVHLEFMRNIGMHGTMSISILRGERLWGLIVCHHRTPYYVDLDGRQACELVAQVLAWQIGVMEE","note":"ex/em 690/713 nm. Near-infrared FP; requires biliverdin chromophore. Source: FPbase irfp713.","ex":690,"em":713,"cite":"10.1038/nbt.1918","sub":"Far-red / near-IR"},{"id":"sol_halotag7","name":"HaloTag7","grp":"Self-labeling tags","aa":"MAEIGTGFPFDPHYVEVLGERMHYVDVGPRDGTPVLFLHGNPTSSYVWRNIIPHVAPTHRCIAPDLIGMGKSDKPDLGYFFDDHVRFMDAFIEALGLEEVVLVIHDWGSALGFHWAKRNPERVKGIAFMEFIRPIPTWDEWPEFARETFQAFRTTDVGRKLIIDQNVFIEGTLPMGVVRPLTEVEMDHYREPFLNPVDREPLWRFPNELPIAGEPANIVALVEEYMDWLHQSPVPKLLFWGTPGVLIPPAEAARLAKSLPNCKAVDIGPGLNLLQEDNPDLIGSEIARWLSTLEISG","note":"Covalent labeling with chloroalkane (HaloTag) ligands; also used for purification and pull-down. 297 aa, engineered from a Rhodococcus haloalkane dehalogenase. Source: NCBI synthetic construct, verified against canonical HaloTag7 termini and active site.","cite":"10.1021/cb800025k"},{"id":"sol_snaptag","name":"SNAP-tag","grp":"Self-labeling tags","aa":"MDKDCEMKRTTLDSPLGKLELSGCEQGLHRIIFLGKGTSAADAVEVPAPAAVLGGPEPLMQATAWLNAYFHQPEAIEEFPVPALHHPVFQQESFTRQVLWKLLKVVKFGEVISYSHLAALAGNPAATAAVKTALSGNPVPILIPCHRVVQGDLDVGGYEGGLAVKEWLLAHEGHRLGKPGLG","note":"Covalent labeling with O6-benzylguanine (SNAP) substrates. 182 aa, engineered from human O6-alkylguanine-DNA alkyltransferase; catalytic Cys145. Source: NCBI synthetic construct, core cross-checked against the SNAP-tag crystal structure.","cite":"10.1038/nbt765"},{"id":"tev","name":"TEV site","grp":"Protease sites","aa":"ENLYFQG","note":"TEV cleaves between Q and G","cite":"10.1093/protein/14.12.993"},{"id":"tevs","name":"TEV site (Ser)","grp":"Protease sites","aa":"ENLYFQS","note":"Leaves Ser at the new N-terminus","cite":"10.1093/protein/14.12.993"},{"id":"3c","name":"HRV 3C / PreScission","grp":"Protease sites","aa":"LEVLFQGP","note":"Cleaves between Q and G, active at 4 C"},{"id":"thrombin","name":"Thrombin site","grp":"Protease sites","aa":"LVPRGS","note":"Cleaves between R and G"},{"id":"xa","name":"Factor Xa site","grp":"Protease sites","aa":"IEGR","note":"Cleaves after R"},{"id":"ek","name":"Enterokinase site","grp":"Protease sites","aa":"DDDDK","note":"Cleaves after K, leaves no scar"},{"id":"gs","name":"GGS","grp":"Linkers","aa":"GGS","note":"Minimal flexible linker"},{"id":"sgg","name":"SGGSGG","grp":"Linkers","aa":"SGGSGG","note":"Short flexible linker"},{"id":"g4s1","name":"(GGGGS)x1","grp":"Linkers","aa":"GGGGS","note":"Standard flexible linker"},{"id":"g4s2","name":"(GGGGS)x2","grp":"Linkers","aa":"GGGGSGGGGS","note":"Flexible linker, 10 residues"},{"id":"g4s3","name":"(GGGGS)x3","grp":"Linkers","aa":"GGGGSGGGGSGGGGS","note":"Flexible linker, 15 residues"},{"id":"eaaak","name":"(EAAAK)x1","grp":"Linkers","aa":"EAAAK","note":"Rigid helical linker"},{"id":"eaaak3","name":"(EAAAK)x3","grp":"Linkers","aa":"EAAAKEAAAKEAAAK","note":"Rigid helical linker, keeps domains apart"},{"id":"igk","name":"IgK secretion leader","grp":"Targeting","aa":"METDTLLLWVLLLWVPGSTGD","note":"Mammalian secretion, cleaved by signal peptidase"},{"id":"nls","name":"SV40 NLS","grp":"Targeting","aa":"PKKKRKV","note":"Classical monopartite nuclear localization signal"},{"id":"nlsbp","name":"Nucleoplasmin NLS","grp":"Targeting","aa":"KRPAATKKAGQAKKKK","note":"Bipartite nuclear localization signal"},{"id":"nes","name":"NES (HIV-1 Rev)","grp":"Targeting","aa":"LPPLERLTL","note":"Leucine-rich nuclear export signal"},{"id":"kdel","name":"KDEL","grp":"Targeting","aa":"KDEL","note":"ER retention, C-terminal only"},{"id":"mts","name":"COX8A mitochondrial presequence","grp":"Targeting","aa":"MSVLTPLLLRGLTGSARRLPVPRAKIHSL","note":"Mitochondrial matrix targeting, N-terminal only"},{"id":"caax","name":"KRAS4B membrane anchor","grp":"Targeting","aa":"KMSKDGKKKKKKSKTKCVIM","note":"C-terminal prenylation and membrane anchoring"}];
+const GROUP_ORDER = ["Affinity tags", "Epitope tags", "Solubility & affinity partners", "Fluorescent proteins", "Self-labeling tags", "Protease sites", "Linkers", "Targeting"];
+const FP_SUBORDER = ["Blue", "Cyan", "Green", "Yellow", "Orange", "Red", "Far-red / near-IR"];
+const CITES = {"10.1002/(sici)1097-0290(19991120)65:4<382::aid-bit2>3.0.co;2-i":{"authors":"Davis GD et al.","year":1999,"journal":"Biotechnology and Bioengineering","title":"New fusion protein systems designed to give soluble expression inEscherichia coli","doi":"10.1002/(sici)1097-0290(19991120)65:4<382::aid-bit2>3.0.co;2-i"},"10.1016/0378-1119(88)90004-2":{"authors":"di Guan C et al.","year":1988,"journal":"Gene","title":"Vectors that facilitate the expression and purification of foreign peptides in Escherichia coli by fusion to maltose-binding protein","doi":"10.1016/0378-1119(88)90004-2"},"10.1016/0378-1119(88)90005-4":{"authors":"Smith DB & Johnson KS","year":1988,"journal":"Gene","title":"Single-step purification of polypeptides expressed in Escherichia coli as fusions with glutathione S-transferase","doi":"10.1016/0378-1119(88)90005-4"},"10.1016/0378-1119(95)00685-0":{"authors":"Cormack BP et al.","year":1996,"journal":"Gene","title":"FACS-optimized mutants of the green fluorescent protein (GFP)","doi":"10.1016/0378-1119(95)00685-0"},"10.1016/j.chembiol.2008.08.006":{"authors":"Subach OM et al.","year":2008,"journal":"Chemistry &amp; Biology","title":"Conversion of Red Fluorescent Protein into a Bright Blue Probe","doi":"10.1016/j.chembiol.2008.08.006"},"10.1021/bi0516273":{"authors":"Kremers GJ et al.","year":2006,"journal":"Biochemistry","title":"Cyan and Yellow Super Fluorescent Proteins with Improved Brightness, Protein Folding, and FRET F\u00f6rster Radius\n                    <sup>,</sup>","doi":"10.1021/bi0516273"},"10.1021/cb800025k":{"authors":"Los GV et al.","year":2008,"journal":"ACS Chemical Biology","title":"HaloTag: A Novel Protein Labeling Technology for Cell Imaging and Protein Analysis","doi":"10.1021/cb800025k"},"10.1023/b:jsfg.0000029237.70316.52":{"authors":"Malakhov MP et al.","year":2004,"journal":"Journal of Structural and Functional Genomics","title":"SUMO fusions and SUMO-specific protease for efficient expression and purification of proteins","doi":"10.1023/b:jsfg.0000029237.70316.52"},"10.1038/nbt.1918":{"authors":"Filonov GS et al.","year":2011,"journal":"Nature Biotechnology","title":"Bright and stable near-infrared fluorescent protein for in vivo imaging","doi":"10.1038/nbt.1918"},"10.1038/nbt0293-187":{"authors":"LaVallie ER et al.","year":1993,"journal":"Nature Biotechnology","title":"A Thioredoxin Gene Fusion Expression System That Circumvents Inclusion Body Formation in the E. coli Cytoplasm","doi":"10.1038/nbt0293-187"},"10.1038/nbt1037":{"authors":"Shaner NC et al.","year":2004,"journal":"Nature Biotechnology","title":"Improved monomeric red, orange and yellow fluorescent proteins derived from Discosoma sp. red fluorescent protein","doi":"10.1038/nbt1037"},"10.1038/nbt1172":{"authors":"P\u00e9delacq JD et al.","year":2005,"journal":"Nature Biotechnology","title":"Engineering and characterization of a superfolder green fluorescent protein","doi":"10.1038/nbt1172"},"10.1038/nbt765":{"authors":"Keppler A et al.","year":2002,"journal":"Nature Biotechnology","title":"A general method for the covalent labeling of fusion proteins with small molecules in vivo","doi":"10.1038/nbt765"},"10.1038/ncomms1738":{"authors":"Goedhart J et al.","year":2012,"journal":"Nature Communications","title":"Structure-guided evolution of cyan fluorescent proteins towards a quantum yield of 93%","doi":"10.1038/ncomms1738"},"10.1038/nmeth.1209":{"authors":"Shaner NC et al.","year":2008,"journal":"Nature Methods","title":"Improving the photostability of bright monomeric orange and red fluorescent proteins","doi":"10.1038/nmeth.1209"},"10.1038/nmeth.2413":{"authors":"Shaner NC et al.","year":2013,"journal":"Nature Methods","title":"A bright monomeric green fluorescent protein derived from Branchiostoma lanceolatum","doi":"10.1038/nmeth.2413"},"10.1038/nmeth.4074":{"authors":"Bindels DS et al.","year":2016,"journal":"Nature Methods","title":"mScarlet: a bright monomeric red fluorescent protein for cellular imaging","doi":"10.1038/nmeth.4074"},"10.1038/nprot.2007.209":{"authors":"Schmidt TG & Skerra A","year":2007,"journal":"Nature Protocols","title":"The Strep-tag system for one-step purification and high-affinity detection or capturing of proteins","doi":"10.1038/nprot.2007.209"},"10.1038/srep20889":{"authors":"Bajar BT et al.","year":2016,"journal":"Scientific Reports","title":"Improving brightness and photostability of green and red fluorescent proteins for live cell imaging and FRET reporting","doi":"10.1038/srep20889"},"10.1042/bj20081949":{"authors":"Shcherbo D et al.","year":2009,"journal":"Biochemical Journal","title":"Far-red fluorescent tags for protein imaging in living tissues","doi":"10.1042/bj20081949"},"10.1073/pnas.71.4.1342":{"authors":"Shine J & Dalgarno L","year":1974,"journal":"Proceedings of the National Academy of Sciences","title":"The 3\u2032-Terminal Sequence of\n                    <i>Escherichia coli</i>\n                    16S Ribosomal RNA: Complementarity to Nonsense Triplets and Ribosome Binding Sites","doi":"10.1073/pnas.71.4.1342"},"10.1074/jbc.m102815200":{"authors":"Griesbeck O et al.","year":2001,"journal":"Journal of Biological Chemistry","title":"Reducing the Environmental Sensitivity of Yellow Fluorescent Protein","doi":"10.1074/jbc.m102815200"},"10.1093/nar/15.20.8125":{"authors":"Kozak M","year":1987,"journal":"Nucleic Acids Research","title":"An analysis of 5'-noncoding sequences from 699 vertebrate messenger RNAs","doi":"10.1093/nar/15.20.8125"},"10.1093/nar/15.3.1281":{"authors":"Sharp PM & Li WH","year":1987,"journal":"Nucleic Acids Research","title":"The codon adaptation index-a measure of directional synonymous codon usage bias, and its potential applications","doi":"10.1093/nar/15.3.1281"},"10.1093/protein/14.12.993":{"authors":"Kapust RB et al.","year":2001,"journal":"Protein Engineering, Design and Selection","title":"Tobacco etch virus protease: mechanism of autolysis and rational design of stable mutants with wild-type catalytic proficiency","doi":"10.1093/protein/14.12.993"},"10.1126/science.1068539":{"authors":"Zacharias DA et al.","year":2002,"journal":"Science","title":"Partitioning of Lipid-Modified Monomeric GFPs into Membrane Microdomains of Live Cells","doi":"10.1126/science.1068539"},"10.1126/science.273.5280.1392":{"authors":"Orm\u00f6 M et al.","year":1996,"journal":"Science","title":"Crystal Structure of the\n            <b>\n              <i>Aequorea victoria</i>\n            </b>\n            Green Fluorescent Protein","doi":"10.1126/science.273.5280.1392"},"10.1371/journal.pone.0017896":{"authors":"Markwardt ML et al.","year":2011,"journal":"PLoS ONE","title":"An Improved Cerulean Fluorescent Protein with Enhanced Brightness and\n                    Reduced Reversible Photoswitching","doi":"10.1371/journal.pone.0017896"},"10.1371/journal.pone.0028674":{"authors":"Subach OM et al.","year":2011,"journal":"PLoS ONE","title":"An Enhanced Monomeric Blue Fluorescent Protein with the High Chemical Stability of the Chromophore","doi":"10.1371/journal.pone.0028674"}};
+const METHODCITE = {"cai":"10.1093/nar/15.3.1281","kozak":"10.1093/nar/15.20.8125","sd":"10.1073/pnas.71.4.1342"};
+const ENZYMES = [{"grp":"Common cloning","list":[{"name":"EcoRI","site":"GAATTC"},{"name":"BamHI","site":"GGATCC"},{"name":"HindIII","site":"AAGCTT"},{"name":"XhoI","site":"CTCGAG"},{"name":"NotI","site":"GCGGCCGC"},{"name":"NheI","site":"GCTAGC"},{"name":"XbaI","site":"TCTAGA"},{"name":"SalI","site":"GTCGAC"},{"name":"KpnI","site":"GGTACC"},{"name":"SacI","site":"GAGCTC"},{"name":"PstI","site":"CTGCAG"},{"name":"SmaI","site":"CCCGGG"},{"name":"ApaI","site":"GGGCCC"},{"name":"BglII","site":"AGATCT"},{"name":"NcoI","site":"CCATGG"},{"name":"NdeI","site":"CATATG"},{"name":"EcoRV","site":"GATATC"},{"name":"SpeI","site":"ACTAGT"},{"name":"AgeI","site":"ACCGGT"},{"name":"MluI","site":"ACGCGT"},{"name":"AflII","site":"CTTAAG"},{"name":"AvrII","site":"CCTAGG"},{"name":"ClaI","site":"ATCGAT"},{"name":"BspEI","site":"TCCGGA"},{"name":"SphI","site":"GCATGC"},{"name":"StuI","site":"AGGCCT"},{"name":"PvuII","site":"CAGCTG"},{"name":"ScaI","site":"AGTACT"},{"name":"MfeI","site":"CAATTG"},{"name":"NsiI","site":"ATGCAT"},{"name":"BsrGI","site":"TGTACA"},{"name":"EagI","site":"CGGCCG"},{"name":"BstBI","site":"TTCGAA"}]},{"grp":"Rare and 8-cutters","list":[{"name":"AscI","site":"GGCGCGCC"},{"name":"PacI","site":"TTAATTAA"},{"name":"FseI","site":"GGCCGGCC"},{"name":"SbfI","site":"CCTGCAGG"},{"name":"PmeI","site":"GTTTAAAC"},{"name":"SwaI","site":"ATTTAAAT"},{"name":"SrfI","site":"GCCCGGGC"},{"name":"NruI","site":"TCGCGA"},{"name":"SgrAI","site":"CRCCGGYG"}]},{"grp":"Type IIS / Golden Gate","list":[{"name":"BsaI","site":"GGTCTC"},{"name":"BsmBI (Esp3I)","site":"CGTCTC"},{"name":"BbsI","site":"GAAGAC"},{"name":"SapI","site":"GCTCTTC"},{"name":"AarI","site":"CACCTGC"},{"name":"BtgZI","site":"GCGATG"},{"name":"BspQI","site":"GCTCTTC"},{"name":"PaqCI","site":"CACCTGC"}]}];
+const FLANKENZ = ["EcoRI","BamHI","HindIII","XhoI","NotI","NheI","XbaI","SalI","KpnI","NcoI","NdeI","AgeI","BglII","SpeI","AscI","BsaI","BsmBI (Esp3I)"];
+
+const IUPAC = {A:"A",C:"C",G:"G",T:"T",R:"[AG]",Y:"[CT]",S:"[GC]",W:"[AT]",K:"[GT]",M:"[AC]",
+               B:"[CGT]",D:"[AGT]",H:"[ACT]",V:"[ACG]",N:"[ACGT]"};
+const AA3 = {A:"Ala",R:"Arg",N:"Asn",D:"Asp",C:"Cys",Q:"Gln",E:"Glu",G:"Gly",H:"His",I:"Ile",L:"Leu",
+             K:"Lys",M:"Met",F:"Phe",P:"Pro",S:"Ser",T:"Thr",W:"Trp",Y:"Tyr",V:"Val",X:"Xaa"};
+const STOPS = ["TAA","TAG","TGA"];
+
+/* ---------- sequence basics ---------- */
+function cleanSeq(s){
+  return (s||"").split(/\r?\n/).filter(l=>!l.trim().startsWith(">")).join("")
+         .replace(/[\s\d]/g,"").toUpperCase();
+}
+function revcomp(s){
+  const m={A:"T",T:"A",G:"C",C:"G",N:"N",R:"Y",Y:"R",S:"S",W:"W",K:"M",M:"K",B:"V",V:"B",D:"H",H:"D"};
+  return s.split("").reverse().map(c=>m[c]||"N").join("");
+}
+function isDNA(s){
+  if(!s.length) return false;
+  const n=(s.match(/[ACGTUN]/g)||[]).length;
+  return n/s.length > 0.9;
+}
+function aaOf(codon){ const e=CODON.human[codon]; return e?e[0]:(STOPS.indexOf(codon)>=0?"*":"X"); }
+function translate(dna){
+  let p="";
+  for(let i=0;i+2<dna.length;i+=3) p+=aaOf(dna.slice(i,i+3));
+  return p;
+}
+function gcOf(s){ const g=(s.match(/[GC]/g)||[]).length; return s.length? 100*g/s.length : 0; }
+function gc3Of(dna){
+  let t="";
+  for(let i=2;i<dna.length;i+=3) t+=dna[i];
+  return gcOf(t);
+}
+
+/* ---------- codon tables ---------- */
+function synonyms(host, aa){
+  const out=[];
+  const tab=CODON[host];
+  for(const c in tab) if(tab[c][0]===aa) out.push(c);
+  return out.sort((a,b)=>tab[b][1]-tab[a][1]);
+}
+let SYN_CACHE={};
+function synFor(host, aa){
+  const k=host+aa;
+  if(!SYN_CACHE[k]) SYN_CACHE[k]=synonyms(host,aa);
+  return SYN_CACHE[k];
+}
+function mulberry32(a){
+  return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+}
+/* pick a codon for one residue */
+function pickCodon(host, aa, strategy, rng, minFrac){
+  const syn=synFor(host,aa);
+  if(!syn.length) return null;
+  const tab=CODON[host];
+  const ok=syn.filter(c=>tab[c][2]>=minFrac);
+  const pool=ok.length?ok:[syn[0]];
+  if(strategy==="max"||pool.length===1) return pool[0];
+  let tot=0; for(const c of pool) tot+=tab[c][2];
+  let r=rng()*tot;
+  for(const c of pool){ r-=tab[c][2]; if(r<=0) return c; }
+  return pool[pool.length-1];
+}
+function optimizeAA(aaSeq, host, strategy, rng, minFrac){
+  const out=[];
+  for(const aa of aaSeq){
+    const c=pickCodon(host, aa, strategy, rng, minFrac);
+    if(!c) return {error:"Unsupported residue: "+aa};
+    out.push(c);
+  }
+  return {codons:out};
+}
+function caiOf(codons, host){
+  const tab=CODON[host];
+  let sum=0,n=0;
+  for(const c of codons){
+    const e=tab[c]; if(!e) continue;
+    if(e[0]==="M"||e[0]==="W") continue;
+    const w=Math.max(e[1],0.005);
+    sum+=Math.log(w); n++;
+  }
+  return n? Math.exp(sum/n) : 0;
+}
+
+/* ---------- forbidden motifs ---------- */
+function siteRegex(site){
+  let p=""; for(const ch of site) p += (IUPAC[ch]||"N");
+  return p;
+}
+function buildForbidden(enzSites, customSites, opts){
+  const pats=[];
+  const seen={};
+  function add(name, site){
+    const key=name+"|"+site;
+    if(seen[key]) return; seen[key]=1;
+    pats.push({name:name, site:site, re:new RegExp(siteRegex(site),"g")});
+    const rc=revcomp(site);
+    if(rc!==site) pats.push({name:name+" (rev)", site:rc, re:new RegExp(siteRegex(rc),"g")});
+  }
+  for(const e of enzSites) add(e.name, e.site);
+  for(const s of customSites) if(s) add("custom "+s, s);
+  if(opts.homo){
+    pats.push({name:"poly-A run", site:"A{9,}", re:/A{9,}/g});
+    pats.push({name:"poly-T run", site:"T{9,}", re:/T{9,}/g});
+    pats.push({name:"poly-G run", site:"G{6,}", re:/G{6,}/g});
+    pats.push({name:"poly-C run", site:"C{6,}", re:/C{6,}/g});
+  }
+  if(opts.hostLiab){
+    if(opts.host==="ecoli"){ add("internal Shine-Dalgarno","GGAGG"); }
+    else { add("polyadenylation signal","AATAAA"); add("polyadenylation signal","ATTAAA"); }
+  }
+  return pats;
+}
+function inProtected(v, prot){
+  if(!prot) return false;
+  for(const p of prot) if(v.start>=p.start && v.end<=p.end) return true;
+  return false;
+}
+function vios(seq, pats, prot){
+  const h=findViolations(seq,pats);
+  return (prot&&prot.length)? h.filter(v=>!inProtected(v,prot)) : h;
+}
+/* all violations in a sequence, each {start,end,name} */
+function findViolations(seq, pats){
+  const hits=[];
+  for(const p of pats){
+    p.re.lastIndex=0;
+    let m;
+    while((m=p.re.exec(seq))!==null){
+      hits.push({start:m.index, end:m.index+m[0].length, name:p.name, match:m[0]});
+      p.re.lastIndex=m.index+1;
+    }
+  }
+  return hits.sort((a,b)=>a.start-b.start);
+}
+/* scan a sequence for every selected enzyme, forward strand coords */
+function findSites(seq, enzList, circular){
+  const res=[];
+  for(const e of enzList){
+    const positions=[];
+    const fwd=new RegExp(siteRegex(e.site),"g");
+    let m; fwd.lastIndex=0;
+    while((m=fwd.exec(seq))!==null){ positions.push({pos:m.index+1, strand:"+"}); fwd.lastIndex=m.index+1; }
+    const rc=revcomp(e.site);
+    if(rc!==e.site){
+      const rr=new RegExp(siteRegex(rc),"g"); rr.lastIndex=0;
+      while((m=rr.exec(seq))!==null){ positions.push({pos:m.index+1, strand:"-"}); rr.lastIndex=m.index+1; }
+    }
+    positions.sort((a,b)=>a.pos-b.pos);
+    res.push({name:e.name, site:e.site, n:positions.length, positions:positions});
+  }
+  return res;
+}
+
+/* ---------- assembly ---------- */
+const KOZAK_OPTS = {
+  human: [
+    {v:"GCCACC",   t:"Kozak GCCACC (consensus)"},
+    {v:"GCCGCCACC",t:"Kozak GCCGCCACC (extended)"},
+    {v:"CCACC",    t:"Kozak CCACC (minimal)"},
+    {v:"",         t:"None"}
+  ],
+  ecoli: [
+    {v:"AAGGAGG", t:"Shine-Dalgarno AAGGAGG (strong)"},
+    {v:"AAGGAG",  t:"Shine-Dalgarno AAGGAG (pET style)"},
+    {v:"AGGAGG",  t:"Shine-Dalgarno AGGAGG (consensus core)"},
+    {v:"",        t:"None"}
+  ]
+};
+const SPACER_FILL = "ATATACATA";
+
+function elementCodons(el, host, strategy, rng, minFrac){
+  if(el.dna){
+    const cs=[];
+    for(let i=0;i<el.dna.length;i+=3) cs.push(el.dna.slice(i,i+3));
+    return {codons:cs, locked:cs.map(()=>true), aas:translate(el.dna).split("")};
+  }
+  const r=optimizeAA(el.aa, host, strategy, rng, minFrac);
+  if(r.error) return {error:r.error+" in element "+el.name};
+  return {codons:r.codons, locked:r.codons.map(()=>false), aas:el.aa.split("")};
+}
+
+function assemble(st){
+  const warn=[];
+  const rng=mulberry32(st.seed>>>0 || 1);
+  const minFrac=0.10;
+
+  /* --- gene --- */
+  let raw=cleanSeq(st.geneSeq);
+  if(!raw) return {error:"Paste a gene sequence in step 2."};
+  let geneEl=null;
+  if(isDNA(raw)){
+    raw=raw.replace(/U/g,"T");
+    if(raw.length%3) return {error:"The pasted DNA is "+raw.length+" nt, which is not a multiple of 3. Trim it to a complete reading frame or paste the protein sequence instead."};
+    let prot=translate(raw);
+    if(prot.endsWith("*")){ prot=prot.slice(0,-1); raw=raw.slice(0,-3); warn.push("A terminal stop codon was found in the pasted DNA and removed so C-terminal elements stay in frame."); }
+    if(prot.indexOf("*")>=0) return {error:"The pasted DNA contains an internal stop codon in this frame. Check the reading frame."};
+    geneEl={name:st.geneName||"gene", aa:prot, kind:"gene"};
+    if(st.strategy==="keep") geneEl.dna=raw;
+  } else {
+    const bad=raw.replace(/[ACDEFGHIKLMNPQRSTVWY]/g,"");
+    if(bad.length) return {error:"Unrecognised residues in the gene sequence: "+[...new Set(bad)].join(", ")};
+    geneEl={name:st.geneName||"gene", aa:raw, kind:"gene"};
+    if(st.strategy==="keep") warn.push("A protein sequence was pasted, so the codon strategy fell back to weighted sampling.");
+  }
+  if(st.dropMet && st.nParts.length && geneEl.aa.startsWith("M")){
+    geneEl.aa=geneEl.aa.slice(1);
+    if(geneEl.dna) geneEl.dna=geneEl.dna.slice(3);
+    warn.push("The gene's initiator Met was removed because N-terminal elements precede it.");
+  }
+
+  /* --- element order --- */
+  let els=[];
+  const link={name:"(GGGGS)x1 linker", aa:"GGGGS", kind:"linker"};
+  function pushWithLink(list, arr, isN){
+    for(let i=0;i<arr.length;i++){
+      els.push(Object.assign({}, arr[i]));
+      const nxt = (i<arr.length-1) ? arr[i+1] : (isN? geneEl : null);
+      /* protease sites and cleavable tags (SUMO) must abut the domain they release */
+      if(st.autoLink && nxt && arr[i].kind!=="linker" && nxt.kind!=="linker" &&
+         arr[i].kind!=="protease" && arr[i].kind!=="cleavable") els.push(Object.assign({},link));
+    }
+  }
+  pushWithLink(els, st.nParts, true);
+  els.push(geneEl);
+  if(st.cParts.length){
+    if(st.autoLink && st.cParts[0].kind!=="linker") els.push(Object.assign({},link));
+    pushWithLink(els, st.cParts, false);
+  }
+
+  /* --- codons --- */
+  let codons=[], locked=[], aas=[], feats=[];
+  for(const el of els){
+    const r=elementCodons(el, st.host, st.strategy, rng, minFrac);
+    if(r.error) return {error:r.error};
+    feats.push({name:el.name, kind:el.kind||"element", cFrom:codons.length, cTo:codons.length+r.codons.length});
+    codons=codons.concat(r.codons);
+    locked=locked.concat(r.locked);
+    aas=aas.concat(r.aas);
+  }
+  /* start codon */
+  let addedMet=false;
+  if(aas[0]==="M"){ codons[0]="ATG"; locked[0]=true; }
+  else {
+    codons.unshift("ATG"); locked.unshift(true); aas.unshift("M");
+    for(const f of feats){ f.cFrom++; f.cTo++; }
+    feats.unshift({name:"start codon (Met added)", kind:"start", cFrom:0, cTo:1});
+    addedMet=true;
+    warn.push("An initiator ATG was added because the first element does not begin with Met.");
+  }
+
+  /* --- prefix / suffix --- */
+  let prefix="", pfeat=[];
+  const pad="CACC".repeat(4).slice(0, st.pad);  /* GC-balanced guard bases */
+  if(st.flank5){
+    const site=enzSite(st.flank5);
+    if(site){ pfeat.push({name:st.flank5+" site", kind:"site", from:prefix.length+pad.length, to:prefix.length+pad.length+site.length});
+              prefix+=pad+site; }
+  }
+  const sig=st.kozak;
+  const protect=[];
+  if(sig){
+    if(st.host==="ecoli"){
+      const sp=SPACER_FILL.slice(0, Math.max(0, st.spacer));
+      pfeat.push({name:"Shine-Dalgarno", kind:"rbs", from:prefix.length, to:prefix.length+sig.length});
+      protect.push({start:prefix.length, end:prefix.length+sig.length});
+      prefix+=sig+sp;
+    } else {
+      pfeat.push({name:"Kozak sequence", kind:"kozak", from:prefix.length, to:prefix.length+sig.length});
+      protect.push({start:prefix.length, end:prefix.length+sig.length});
+      prefix+=sig;
+    }
+  }
+  let suffix="", sfeatRel=[];
+  if(st.stop){ sfeatRel.push({name:"stop codon", kind:"stop", from:0, to:st.stop.length}); suffix+=st.stop; }
+  if(st.flank3){
+    const site=enzSite(st.flank3);
+    if(site){ sfeatRel.push({name:st.flank3+" site", kind:"site", from:suffix.length, to:suffix.length+site.length});
+              suffix+=site+pad; }
+  }
+
+  /* --- constraint repair --- */
+  const avoidEnz=st.enzAvoid.filter(e=> e.name!==st.flank5 && e.name!==st.flank3);
+  const pats=buildForbidden(avoidEnz, st.customSites, {homo:st.avoidHomo, hostLiab:st.avoidHost, host:st.host});
+  const rep=repairAll(prefix, codons, locked, aas, suffix, st.host, pats, minFrac, protect);
+  codons=rep.codons;
+  const gcres=gcRepair(prefix, codons, locked, aas, suffix, st.host, pats, st.gcLo, st.gcHi, protect);
+  codons=gcres.codons;
+
+  const cds=codons.join("");
+  const dna=prefix+cds+suffix;
+  const features=[];
+  for(const f of pfeat) features.push({name:f.name, kind:f.kind, start:f.from+1, end:f.to});
+  for(const f of feats) features.push({name:f.name, kind:f.kind,
+      start:prefix.length+f.cFrom*3+1, end:prefix.length+f.cTo*3});
+  for(const f of sfeatRel) features.push({name:f.name, kind:f.kind,
+      start:prefix.length+cds.length+f.from+1, end:prefix.length+cds.length+f.to});
+  features.sort((a,b)=>a.start-b.start||a.end-b.end);
+
+  return {dna:dna, cds:cds, cdsStart:prefix.length, codons:codons, aas:aas, protein:aas.join(""),
+          features:features, warnings:warn.concat(rep.warn).concat(gcres.warn),
+          unresolved:rep.unresolved, pats:pats, addedMet:addedMet, elements:els};
+}
+
+function enzSite(name){
+  for(const g of ENZYMES) for(const e of g.list) if(e.name===name) return e.site;
+  return null;
+}
+
+/* greedy repair: swap synonymous codons until forbidden motifs are gone */
+function repairAll(prefix, codons0, locked, aas, suffix, host, pats, minFrac, protect){
+  let codons=codons0.slice();
+  const warn=[], tab=CODON[host];
+  const MAXIT=600;
+  let skip={};
+  for(let it=0; it<MAXIT; it++){
+    const seq=prefix+codons.join("")+suffix;
+    const vio=vios(seq, pats, protect).filter(v=>!skip[v.start+":"+v.name]);
+    if(!vio.length) break;
+    const v=vio[0];
+    const base=vios(seq,pats,protect).length;
+    const ci0=Math.max(0, Math.floor((v.start-prefix.length)/3));
+    const ci1=Math.min(codons.length-1, Math.floor((v.end-1-prefix.length)/3));
+    let fixed=false;
+    for(let ci=ci0; ci<=ci1 && !fixed; ci++){
+      if(ci<0||ci>=codons.length||locked[ci]) continue;
+      const alts=synFor(host, aas[ci]).filter(c=>c!==codons[ci]);
+      for(const alt of alts){
+        const old=codons[ci];
+        codons[ci]=alt;
+        const nseq=prefix+codons.join("")+suffix;
+        const nv=vios(nseq,pats,protect);
+        if(nv.length<base){ fixed=true; break; }
+        codons[ci]=old;
+      }
+    }
+    if(!fixed){ skip[v.start+":"+v.name]=1; }
+  }
+  const finalSeq=prefix+codons.join("")+suffix;
+  const left=vios(finalSeq, pats, protect);
+  const unresolved=[];
+  for(const v of left){
+    const inCDS = v.start>=prefix.length && v.end<=prefix.length+codons.length*3;
+    unresolved.push({name:v.name, match:v.match, start:v.start+1, end:v.end, inCDS:inCDS});
+  }
+  if(unresolved.length) warn.push(unresolved.length+" forbidden motif(s) could not be removed by synonymous changes. See the quality checks tab.");
+  return {codons:codons, warn:warn, unresolved:unresolved};
+}
+
+/* nudge global GC into the requested window without creating new violations */
+function gcRepair(prefix, codons0, locked, aas, suffix, host, pats, lo, hi, protect){
+  let codons=codons0.slice();
+  const warn=[];
+  const target=(lo+hi)/2;
+  let seq=prefix+codons.join("")+suffix;
+  let gc=gcOf(seq);
+  if(gc>=lo && gc<=hi) return {codons:codons, warn:warn};
+  const baseVio=vios(seq,pats,protect).length;
+  const want = gc<lo ? 1 : -1;
+  for(let it=0; it<400; it++){
+    seq=prefix+codons.join("")+suffix;
+    gc=gcOf(seq);
+    if(gc>=lo && gc<=hi) break;
+    let best=null;
+    for(let ci=0; ci<codons.length; ci++){
+      if(locked[ci]) continue;
+      const cur=codons[ci], curGC=(cur.match(/[GC]/g)||[]).length;
+      for(const alt of synFor(host, aas[ci])){
+        if(alt===cur) continue;
+        const d=((alt.match(/[GC]/g)||[]).length-curGC)*want;
+        if(d<=0) continue;
+        const score=d*CODON[host][alt][1];
+        if(!best||score>best.score) best={ci:ci, alt:alt, score:score};
+      }
+    }
+    if(!best) break;
+    const old=codons[best.ci];
+    codons[best.ci]=best.alt;
+    const nv=vios(prefix+codons.join("")+suffix,pats,protect).length;
+    if(nv>baseVio){ codons[best.ci]=old; break; }
+  }
+  seq=prefix+codons.join("")+suffix;
+  gc=gcOf(seq);
+  if(gc<lo||gc>hi) warn.push("Overall GC content is "+gc.toFixed(1)+"%, outside the requested "+lo+" to "+hi+"% window. Synonymous codons cannot move it further.");
+  return {codons:codons, warn:warn};
+}
+
+/* ---------- quality checks ---------- */
+function findRepeats(seq, k){
+  const seen={}, out=[];
+  for(let i=0;i+k<=seq.length;i++){
+    const s=seq.slice(i,i+k);
+    if(seen[s]!==undefined){ out.push({seq:s, at:[seen[s]+1, i+1]}); }
+    else seen[s]=i;
+  }
+  const uniq={}, res=[];
+  for(const r of out){ if(!uniq[r.seq]){ uniq[r.seq]=1; res.push(r); } }
+  return res;
+}
+function findHairpins(seq, stem, maxLoop){
+  const out=[];
+  for(let i=0;i+stem<=seq.length;i++){
+    const s=seq.slice(i,i+stem), rc=revcomp(s);
+    const from=i+stem+3, to=Math.min(seq.length, i+stem+maxLoop+stem);
+    const idx=seq.slice(from, to).indexOf(rc);
+    if(idx>=0) out.push({at:i+1, stem:s, pairAt:from+idx+1});
+    if(out.length>40) break;
+  }
+  return out;
+}
+function gcWindows(seq, win, step, lo, hi){
+  const bad=[];
+  for(let i=0;i+win<=seq.length;i+=step){
+    const g=gcOf(seq.slice(i,i+win));
+    if(g<lo||g>hi) bad.push({at:i+1, gc:g});
+  }
+  return bad;
+}
+function qcReport(res, st){
+  const checks=[], seq=res.dna, cds=res.cds;
+  function add(level, text){ checks.push({level:level, text:text}); }
+
+  if(cds.length%3) add("bad","The coding sequence is "+cds.length+" nt, which is not a multiple of 3.");
+  else add("ok","Coding sequence is in frame ("+(cds.length/3)+" codons, "+cds.length+" nt).");
+  const tr=translate(cds);
+  if(tr!==res.protein) add("bad","Internal consistency check failed: the assembled DNA does not translate to the intended protein.");
+  else add("ok","Assembled DNA translates exactly to the intended "+tr.length+" residue protein.");
+  if(tr.indexOf("*")>=0) add("bad","The coding sequence contains an internal stop codon.");
+  if(!cds.startsWith("ATG")) add("warn","The coding sequence does not start with ATG.");
+  if(st.stop) add("ok","Terminated with "+st.stop.match(/.{3}/g).join(" ")+".");
+  else add("warn","No stop codon was added, so translation will read into the vector.");
+
+  const gc=gcOf(seq), gc3=gc3Of(cds);
+  if(gc<st.gcLo||gc>st.gcHi) add("warn","Overall GC is "+gc.toFixed(1)+"%, outside the requested window.");
+  else add("ok","Overall GC content is "+gc.toFixed(1)+"%.");
+  const badWin=gcWindows(seq,50,10,25,75);
+  if(badWin.length) add("warn",badWin.length+" of the 50 nt windows fall outside 25 to 75% GC (first at position "+badWin[0].at+", "+badWin[0].gc.toFixed(0)+"%). Vendors often flag these regions.");
+  else add("ok","Every 50 nt window sits between 25 and 75% GC.");
+
+  if(res.unresolved.length){
+    for(const u of res.unresolved) add("bad","Could not remove "+u.name+" ("+u.match+") at position "+u.start+(u.inCDS?" inside the coding sequence.":" in a fixed flanking region."));
+  } else add("ok","No forbidden restriction site or motif remains in the construct.");
+
+  const homo=seq.match(/A{9,}|T{9,}|G{6,}|C{6,}/g);
+  if(homo) add("warn","Homopolymer runs present: "+[...new Set(homo)].slice(0,4).join(", ")+".");
+  else add("ok","No homopolymer runs above the synthesis threshold.");
+
+  const reps=findRepeats(seq,15);
+  if(reps.length) add("warn",reps.length+" direct repeat(s) of 15 nt or longer (first: "+reps[0].seq+" at "+reps[0].at.join(" and ")+"). Long repeats raise synthesis cost.");
+  else add("ok","No direct repeats of 15 nt or longer.");
+
+  const hp=findHairpins(seq,12,20);
+  if(hp.length) add("warn",hp.length+" potential hairpin(s) with a 12 nt stem (first stem at position "+hp[0].at+").");
+  else add("ok","No strong hairpins detected with a 12 nt stem.");
+
+  if(st.host==="human" && st.kozak){
+    const atg=res.cdsStart;
+    const m3=seq[atg-3], p4=seq[atg+3];
+    if(m3 && "AG".indexOf(m3)>=0) add("ok","Kozak context: purine at -3 ("+m3+").");
+    else add("warn","Kozak context: position -3 is "+(m3||"absent")+", a purine is preferred.");
+    if(p4==="G") add("ok","Kozak context: G at +4.");
+    else add("warn","Kozak context: position +4 is "+(p4||"absent")+", G is preferred but is set by your second codon.");
+  }
+  if(st.host==="ecoli" && st.kozak){
+    add(st.spacer>=5 && st.spacer<=9 ? "ok":"warn","Shine-Dalgarno to start codon spacing is "+st.spacer+" nt"+((st.spacer>=5&&st.spacer<=9)?", within the usual 5 to 9 nt range.":". Most efficient initiation uses 5 to 9 nt."));
+  }
+  const cai=caiOf(res.codons, st.host);
+  const stats={length:seq.length, cdsLen:cds.length, aaLen:res.protein.length,
+               gc:gc, gc3:gc3, cai:cai, mw:protMW(res.protein), pI:null};
+  return {checks:checks, stats:stats};
+}
+function protMW(p){
+  const w={A:71.0788,R:156.1875,N:114.1038,D:115.0886,C:103.1388,E:129.1155,Q:128.1307,G:57.0519,
+           H:137.1411,I:113.1594,L:113.1594,K:128.1741,M:131.1926,F:147.1766,P:97.1167,S:87.0782,
+           T:101.1051,W:186.2132,Y:163.1760,V:99.1326};
+  let m=18.0153;
+  for(const c of p) m+=(w[c]||0);
+  return m/1000;
+}
+
+/* ---------- exports ---------- */
+function toFasta(name, seq, width){
+  width=width||60;
+  let out=">"+name+"\n";
+  for(let i=0;i<seq.length;i+=width) out+=seq.slice(i,i+width)+"\n";
+  return out;
+}
+const GB_KIND={site:"misc_feature", kozak:"regulatory", rbs:"regulatory", start:"misc_feature",
+               stop:"misc_feature", gene:"CDS", linker:"misc_feature", element:"misc_feature"};
+function toGenBank(res, st){
+  const name=(st.geneName||"construct").replace(/[^A-Za-z0-9_.-]/g,"_").slice(0,16);
+  const d=new Date();
+  const mon=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getMonth()];
+  const date=String(d.getDate()).padStart(2,"0")+"-"+mon+"-"+d.getFullYear();
+  let out="";
+  out+="LOCUS       "+name.padEnd(16," ")+" "+String(res.dna.length).padStart(7," ")+" bp    DNA     linear   SYN "+date+"\n";
+  out+="DEFINITION  Synthetic construct "+(st.geneName||"construct")+" assembled with yaronlab.tools/construct.\n";
+  out+="ACCESSION   .\nVERSION     .\nKEYWORDS    .\nSOURCE      synthetic DNA construct\n  ORGANISM  synthetic DNA construct\n";
+  out+="FEATURES             Location/Qualifiers\n";
+  function feat(key, loc, quals){
+    out+="     "+key.padEnd(16," ")+loc+"\n";
+    for(const q of quals) out+="                     "+q+"\n";
+  }
+  feat("source","1.."+res.dna.length,['/organism="synthetic DNA construct"','/mol_type="other DNA"']);
+  const cdsEnd=res.cdsStart+res.cds.length;
+  feat("CDS",(res.cdsStart+1)+".."+cdsEnd,
+       ['/label="'+(st.geneName||"construct")+' ORF"','/codon_start=1',
+        '/product="'+(st.geneName||"construct")+'"',
+        '/translation="'+res.protein+'"']);
+  for(const f of res.features){
+    if(f.kind==="gene"){ feat("misc_feature", f.start+".."+f.end, ['/label="'+f.name+'"']); continue; }
+    const key=GB_KIND[f.kind]||"misc_feature";
+    const q=['/label="'+f.name+'"'];
+    if(key==="regulatory") q.unshift('/regulatory_class="'+(f.kind==="rbs"?"ribosome_binding_site":"other")+'"');
+    feat(key, f.start+".."+f.end, q);
+  }
+  out+="ORIGIN\n";
+  const s=res.dna.toLowerCase();
+  for(let i=0;i<s.length;i+=60){
+    const chunk=s.slice(i,i+60);
+    const blocks=chunk.match(/.{1,10}/g).join(" ");
+    out+=String(i+1).padStart(9," ")+" "+blocks+"\n";
+  }
+  out+="//\n";
+  return out;
+}
+function toFeatureTSV(res){
+  let out="feature\tkind\tstart\tend\tlength\tsequence\n";
+  for(const f of res.features)
+    out+=f.name+"\t"+f.kind+"\t"+f.start+"\t"+f.end+"\t"+(f.end-f.start+1)+"\t"+res.dna.slice(f.start-1,f.end)+"\n";
+  return out;
+}
+
+/* ---------- rendering ---------- */
+const KIND_COLOR={site:"#fde68a", kozak:"#bbf7d0", rbs:"#bbf7d0", start:"#c7d2fe", stop:"#fecaca",
+                  gene:"#bfdbfe", linker:"#e9d5ff", element:"#fed7aa"};
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function renderMap(res){
+  const n=res.dna.length;
+  const own=new Array(n).fill(null);
+  res.features.forEach((f,i)=>{ for(let p=f.start-1;p<f.end && p<n;p++) if(own[p]===null) own[p]=i; });
+  let html="";
+  const seen={};
+  let legend='<div class="legend">';
+  res.features.forEach(f=>{ const c=KIND_COLOR[f.kind]||"#e2e8f0";
+    const k=f.name+c; if(seen[k])return; seen[k]=1;
+    legend+='<span><b style="background:'+c+'"></b>'+esc(f.name)+'</span>'; });
+  legend+='</div>';
+  for(let i=0;i<n;i+=60){
+    html+='<span class="pos">'+String(i+1).padStart(6," ")+'  </span>';
+    let j=i;
+    while(j<Math.min(i+60,n)){
+      const fi=own[j]; let k=j;
+      while(k<Math.min(i+60,n) && own[k]===fi) k++;
+      const txt=esc(res.dna.slice(j,k));
+      if(fi===null) html+=txt;
+      else {
+        const f=res.features[fi];
+        html+='<span title="'+esc(f.name)+'" style="background:'+(KIND_COLOR[f.kind]||"#e2e8f0")+'">'+txt+'</span>';
+      }
+      j=k;
+    }
+    html+="\n";
+  }
+  return legend+'<pre class="seq">'+html+'</pre>';
+}
+function renderProtein(res){
+  const p=res.protein;
+  let html="";
+  for(let i=0;i<p.length;i+=60){
+    html+='<span class="pos">'+String(i+1).padStart(6," ")+'  </span>'+esc(p.slice(i,i+60))+"\n";
+  }
+  return '<pre class="seq">'+html+'</pre>'+
+    '<div class="hint">'+p.length+' residues, '+protMW(p).toFixed(2)+' kDa (average mass of the unmodified chain).</div>';
+}
+function renderFeatures(res){
+  let h='<table><tr><th>Feature</th><th>Type</th><th>Start</th><th>End</th><th>Length</th><th>Sequence</th></tr>';
+  for(const f of res.features){
+    const sq=res.dna.slice(f.start-1,f.end);
+    h+='<tr><td>'+esc(f.name)+'</td><td>'+esc(f.kind)+'</td><td class="num">'+f.start+'</td><td class="num">'+f.end+
+       '</td><td class="num">'+(f.end-f.start+1)+'</td><td class="mono" style="font-size:0.75rem;word-break:break-all">'+
+       esc(sq.length>48? sq.slice(0,24)+"..."+sq.slice(-21) : sq)+'</td></tr>';
+  }
+  return h+'</table>';
+}
+function renderQC(q){
+  let h='<div class="stats">';
+  const S=q.stats;
+  h+='<div class="stat"><div class="k">Total length</div><div class="v">'+S.length+' nt</div></div>';
+  h+='<div class="stat"><div class="k">Coding region</div><div class="v">'+S.cdsLen+' nt</div></div>';
+  h+='<div class="stat"><div class="k">Protein</div><div class="v">'+S.aaLen+' aa</div></div>';
+  h+='<div class="stat"><div class="k">Mass</div><div class="v">'+S.mw.toFixed(1)+' kDa</div></div>';
+  h+='<div class="stat"><div class="k">GC</div><div class="v">'+S.gc.toFixed(1)+'%</div></div>';
+  h+='<div class="stat"><div class="k">GC3</div><div class="v">'+S.gc3.toFixed(1)+'%</div></div>';
+  h+='<div class="stat"><div class="k">CAI</div><div class="v">'+S.cai.toFixed(3)+'</div></div>';
+  h+='</div>';
+  const order={bad:0,warn:1,ok:2};
+  q.checks.slice().sort((a,b)=>order[a.level]-order[b.level]).forEach(c=>{
+    h+='<div class="msg '+c.level+'">'+esc(c.text)+'</div>';
+  });
+  return h;
+}
+function renderSites(res, enzList){
+  const map=findSites(res.dna, enzList, false);
+  const uniq=map.filter(m=>m.n===1), none=map.filter(m=>m.n===0), multi=map.filter(m=>m.n>1);
+  let h='<div class="hint" style="margin-bottom:10px">Scan of the assembled construct against every enzyme in the library. '+
+        'Single cutters are the ones you can use to clone or diagnose.</div>';
+  h+='<table><tr><th>Enzyme</th><th>Site</th><th>Cuts</th><th>Positions</th></tr>';
+  for(const m of uniq.concat(multi)){
+    h+='<tr><td>'+esc(m.name)+'</td><td class="mono">'+esc(m.site)+'</td><td class="num">'+m.n+'</td><td class="mono" style="font-size:0.78rem">'+
+       m.positions.map(p=>p.pos+p.strand).join(", ")+'</td></tr>';
+  }
+  h+='</table>';
+  h+='<div class="hint" style="margin-top:10px"><b>Absent from the construct ('+none.length+'):</b> '+
+     none.map(m=>esc(m.name)).join(", ")+'</div>';
+  return h;
+}
+function renderExport(res, st, gb){
+  const plain=res.dna;
+  let h='<div class="btn-row" style="margin-top:0">'+
+    '<button class="secondary" data-dl="seq">Copy sequence</button>'+
+    '<button class="secondary" data-dl="fasta">Download FASTA</button>'+
+    '<button class="secondary" data-dl="gb">Download GenBank</button>'+
+    '<button class="secondary" data-dl="prot">Download protein FASTA</button>'+
+    '<button class="secondary" data-dl="tsv">Download feature table</button></div>'+
+    '<div class="hint">The GenBank file carries the annotated features and opens in SnapGene, Benchling or ApE. '+
+    'Paste the plain sequence into a synthesis order form.</div>'+
+    '<label class="block" style="margin-top:14px">Sequence for the order form</label>'+
+    '<textarea readonly class="mono" style="min-height:150px">'+esc(plain)+'</textarea>';
+  return h;
+}
+
+
+/* ---------- methods text + per-construct references ---------- */
+function fmtRef(c){
+  // author, year, journal, DOI
+  return c.authors+" ("+c.year+"). "+(c.title?c.title+". ":"")+(c.journal?c.journal+". ":"")+"https://doi.org/"+c.doi;
+}
+function buildMethods(res, st){
+  const usedDois=[];           // ordered, de-duplicated
+  function cite(doi){
+    if(!doi) return "";
+    let i=usedDois.indexOf(doi);
+    if(i<0){ usedDois.push(doi); i=usedDois.length-1; }
+    return "["+(i+1)+"]";
+  }
+  const hostName = st.host==="ecoli" ? "Escherichia coli" : "mammalian cells";
+  const strat = st.strategy==="keep" ? "the supplied coding sequence was retained unchanged"
+    : (st.strategy==="max" ? "each residue was assigned its most frequent synonymous codon"
+       : "codons were sampled in proportion to their frequency");
+  const refSet = st.host==="ecoli"
+    ? "highly expressed E. coli K-12 genes"
+    : "highly expressed human genes";
+
+  // element inventory in N-to-C order (skip the start codon pseudo-feature)
+  const parts=[];
+  for(const el of res.elements){
+    const lib = PARTLIB.find(p=>p.name===el.name);
+    parts.push({name:el.name, kind:el.kind||"element", cite: lib?lib.cite:null, ex:lib?lib.ex:null, em:lib?lib.em:null,
+                isGene: el.kind==="gene"});
+  }
+  let order = parts.map(p=>{
+    if(p.isGene) return "the gene of interest";
+    let s=p.name;
+    if(p.cite) s+=" "+cite(p.cite);
+    if(p.ex&&p.em) s+=" (ex/em "+p.ex+"/"+p.em+" nm)";
+    return s;
+  }).join(", then ");
+
+  let txt="";
+  txt+="Construct design. The "+(st.geneName||"construct")+" expression construct was assembled in silico with the "+
+    "yaronlab.tools construct builder. Reading from the N- to the C-terminus, the open reading frame encodes "+order+". ";
+  const cai=caiOf(res.codons, st.host).toFixed(2);
+  if(st.strategy==="keep"){
+    txt+="The coding sequence of the gene of interest was retained as supplied, while added elements were codon-optimized for expression in "+hostName+". ";
+  } else {
+    txt+="The entire open reading frame was codon-optimized for expression in "+hostName+" "+cite(METHODCITE.cai)+", in which "+
+      strat+" using a usage table derived from "+refSet+"; the resulting codon adaptation index was "+cai+". ";
+  }
+  txt+="Codon selection excluded recognition sites for "+(st.enzAvoid.length? st.enzAvoid.map(e=>e.name).join(", ") : "the selected restriction enzymes")+
+    (st.customSites.length? " and the sequences "+st.customSites.join(", ") : "")+
+    " so that these sites remain unique for downstream cloning, and the overall GC content was constrained to "+st.gcLo+" to "+st.gcHi+"%";
+  if(st.avoidHomo) txt+="; homopolymeric runs were avoided";
+  txt+=". ";
+  if(st.kozak){
+    if(st.host==="ecoli") txt+="A Shine-Dalgarno sequence ("+st.kozak+") "+cite(METHODCITE.sd)+" was placed "+st.spacer+" nt upstream of the initiator ATG. ";
+    else txt+="A Kozak consensus sequence ("+st.kozak+") "+cite(METHODCITE.kozak)+" was placed immediately upstream of the initiator ATG. ";
+  }
+  if(st.stop){ txt+="Translation is terminated by "+(st.stop.length>3?"tandem ":"a ")+"stop codon"+(st.stop.length>3?"s":"")+" ("+st.stop.match(/.{3}/g).join(", ")+"). "; }
+  if(st.flank5||st.flank3){
+    const f=[]; if(st.flank5) f.push(st.flank5+" (5')"); if(st.flank3) f.push(st.flank3+" (3')");
+    txt+="Flanking "+f.join(" and ")+" restriction site"+(f.length>1?"s":"")+" were added for directional cloning, with "+st.pad+" guard nucleotides outside each site. ";
+  }
+  txt+="The final "+res.dna.length+" bp fragment ("+(res.cds.length/3)+" codons, GC "+gcOf(res.dna).toFixed(0)+"%) was synthesized and cloned into the expression vector. ";
+  txt+="Fluorescent protein and fusion-partner sequences were obtained from FPbase and UniProt; the complete accession list is given on the tool's reference page.";
+
+  let refs="";
+  if(usedDois.length){
+    refs="\n\nReferences\n";
+    usedDois.forEach((doi,i)=>{ const c=CITES[doi]; refs+=(i+1)+". "+(c?fmtRef(c):doi)+"\n"; });
+  }
+  return {text:txt, refs:refs, usedDois:usedDois};
+}
+function renderMethods(res, st){
+  const m=buildMethods(res, st);
+  const full=m.text+m.refs;
+  return '<div class="src-note">A copy-pastable methods paragraph describing this construct. Inline markers [n] correspond to the numbered references, which list only the sources used in this construct.</div>'+
+    '<div class="btn-row" style="margin-top:0"><button class="secondary" data-cp="methods">Copy methods text</button></div>'+
+    '<textarea class="methods-box" readonly id="methodsText">'+esc(full)+'</textarea>';
+}
+function renderRefs(res, st){
+  // every citeable source used by elements in THIS construct + the method citations that apply
+  const dois=[];
+  for(const el of res.elements){ const lib=PARTLIB.find(p=>p.name===el.name); if(lib&&lib.cite&&dois.indexOf(lib.cite)<0) dois.push(lib.cite); }
+  if(st.strategy!=="keep" && dois.indexOf(METHODCITE.cai)<0) dois.push(METHODCITE.cai);
+  if(st.kozak){ const d=st.host==="ecoli"?METHODCITE.sd:METHODCITE.kozak; if(dois.indexOf(d)<0) dois.push(d); }
+  let h='<div class="src-note">Primary references for the tags, fusion partners, and methods used in this construct (author, year, journal, DOI). '+
+        'A full list of every source and sequence accession the tool draws on is in the References and data sources section at the bottom of the page.</div>';
+  h+='<ol class="ref-list">';
+  dois.forEach(doi=>{ const c=CITES[doi]; if(c) h+='<li>'+esc(c.authors)+' ('+c.year+'). '+esc(c.title)+'. <i>'+esc(c.journal)+'</i>. <a href="https://doi.org/'+esc(c.doi)+'" target="_blank" rel="noopener">https://doi.org/'+esc(c.doi)+'</a></li>'; });
+  h+='</ol>';
+  return h;
+}
+
+/* ---------- UI ---------- */
+let ST={nParts:[], cParts:[], custom:[]};
+let LAST=null;
+function byId(i){ return document.getElementById(i); }
+function loadCustom(){
+  try{ ST.custom=JSON.parse(localStorage.getItem("ylt_construct_parts")||"[]"); }catch(e){ ST.custom=[]; }
+}
+function saveCustom(){
+  try{ localStorage.setItem("ylt_construct_parts", JSON.stringify(ST.custom)); }catch(e){}
+}
+function allParts(){ return PARTLIB.concat(ST.custom); }
+
+/* visible-spectrum colour from emission wavelength (nm); near-IR clamps to deep red */
+function wavelengthRGB(nm){
+  if(nm==null) return [100,116,139];
+  let w=Math.max(380, Math.min(700, nm)), R=0,G=0,B=0;
+  /* bands tuned to conventional fluorophore appearance, not pure spectral locus */
+  if(w<440){ R=-(w-440)/60; B=1; }
+  else if(w<490){ G=(w-440)/50; B=1; }
+  else if(w<510){ G=1; B=-(w-510)/20; }
+  else if(w<555){ R=(w-510)/45; G=1; }          /* green -> yellow */
+  else if(w<595){ R=1; G=1-(w-555)/40; }        /* yellow -> red */
+  else { R=1; }                                  /* red */
+  let f=1;
+  if(nm<420) f=0.3+0.7*(nm-380)/40;
+  else if(nm>700) f=0.75;        /* near-IR: keep a visible deep red */
+  else if(nm>645) f=0.3+0.7*(700-nm)/55;
+  const ch=c=>Math.round(255*Math.pow(Math.max(0,c)*f,0.8));
+  return [ch(R),ch(G),ch(B)];
+}
+function rgbStr(a){ return "rgb("+a[0]+","+a[1]+","+a[2]+")"; }
+/* darken a colour until it is legible as text on a light background */
+function inkRGB(nm){
+  let [r,g,b]=wavelengthRGB(nm);
+  const lum=(r,g,b)=>(0.2126*r+0.7152*g+0.0722*b)/255;
+  let f=1;
+  while(f>0.25 && lum(r*f,g*f,b*f)>0.5) f-=0.04;
+  return [Math.round(r*f),Math.round(g*f),Math.round(b*f)];
+}
+
+function groupsInOrder(){
+  const by={};
+  for(const p of allParts()) (by[p.grp]=by[p.grp]||[]).push(p);
+  const order=GROUP_ORDER.slice();
+  for(const g in by) if(order.indexOf(g)<0) order.push(g);   // custom "My elements" last
+  return order.filter(g=>by[g]&&by[g].length).map(g=>[g, by[g]]);
+}
+function partMeta(p){
+  if(p.ex&&p.em) return "ex/em "+p.ex+"/"+p.em+" nm \u00b7 "+p.aa.length+" aa";
+  const aaLen=p.aa?p.aa.length:Math.round(p.dna.length/3);
+  return aaLen+" aa";
+}
+function itemHTML(p){
+  const sw=(p.ex&&p.em)? '<span class="sw" style="background:'+rgbStr(wavelengthRGB(p.em))+'"></span>' : '';
+  const nmStyle=(p.ex&&p.em)? ' style="color:'+rgbStr(inkRGB(p.em))+'"' : '';
+  return '<div class="partsel-item" role="option" data-id="'+p.id+'" data-name="'+esc(p.name.toLowerCase())+'">'+
+         sw+'<span class="nm"'+nmStyle+'>'+esc(p.name)+'</span><span class="meta">'+esc(partMeta(p))+'</span></div>';
+}
+function fillParts(){
+  const list=byId("partSelList");
+  let html="";
+  for(const [g, parts] of groupsInOrder()){
+    html+='<div class="partsel-group">'+esc(g)+'</div>';
+    if(g==="Fluorescent proteins"){
+      const subs={};
+      for(const p of parts) (subs[p.sub||"Other"]=subs[p.sub||"Other"]||[]).push(p);
+      for(const s of FP_SUBORDER){
+        if(!subs[s]) continue;
+        html+='<div class="partsel-sub">'+esc(s)+'</div>';
+        for(const p of subs[s]) html+=itemHTML(p);
+      }
+    } else {
+      for(const p of parts) html+=itemHTML(p);
+    }
+  }
+  list.innerHTML=html;
+  // keep current selection valid; else pick first item
+  const cur=byId("partPick").value;
+  if(!cur || !partById(cur)){
+    const first=list.querySelector(".partsel-item");
+    if(first) selectPart(first.dataset.id);
+  } else selectPart(cur);
+}
+function selectPart(id){
+  const p=partById(id); if(!p) return;
+  byId("partPick").value=id;
+  const sw=(p.ex&&p.em)? '<span class="sw" style="background:'+rgbStr(wavelengthRGB(p.em))+'"></span>' : '';
+  const nmStyle=(p.ex&&p.em)? ' style="color:'+rgbStr(inkRGB(p.em))+';font-weight:600"' : '';
+  byId("partSelLabel").parentNode; // noop
+  byId("partSelLabel").innerHTML=sw+'<span'+nmStyle+'>'+esc(p.name)+'</span> <span style="color:var(--muted);font-weight:400">'+esc(partMeta(p))+'</span>';
+  document.querySelectorAll("#partSelList .partsel-item").forEach(el=>el.classList.toggle("active", el.dataset.id===id));
+}
+function openPartPanel(open){
+  const panel=byId("partSelPanel"), btn=byId("partSelBtn");
+  panel.hidden=!open; btn.setAttribute("aria-expanded", open?"true":"false");
+  if(open){ const s=byId("partSearch"); s.value=""; filterParts(""); setTimeout(()=>s.focus(),0);
+            const act=byId("partSelList").querySelector(".partsel-item.active"); if(act&&act.scrollIntoView) act.scrollIntoView({block:"nearest"}); }
+}
+function filterParts(q){
+  q=(q||"").trim().toLowerCase();
+  const list=byId("partSelList");
+  let anyVisible=false;
+  list.querySelectorAll(".partsel-item").forEach(el=>{
+    const show=!q || el.dataset.name.indexOf(q)>=0;
+    el.style.display=show?"":"none"; if(show) anyVisible=true;
+  });
+  // hide group/sub headers with no visible items beneath them (until next header)
+  const kids=Array.from(list.children);
+  for(let i=0;i<kids.length;i++){
+    const el=kids[i];
+    if(el.classList.contains("partsel-group")||el.classList.contains("partsel-sub")){
+      let vis=false;
+      for(let j=i+1;j<kids.length;j++){
+        if(kids[j].classList.contains("partsel-group")) break;
+        if(el.classList.contains("partsel-sub")&&kids[j].classList.contains("partsel-sub")) break;
+        if(kids[j].classList.contains("partsel-item")&&kids[j].style.display!=="none"){ vis=true; break; }
+      }
+      el.style.display=vis?"":"none";
+    }
+  }
+  let none=list.querySelector(".partsel-none");
+  if(!anyVisible){ if(!none){ none=document.createElement("div"); none.className="partsel-none"; none.textContent="No elements match."; list.appendChild(none);} none.style.display=""; }
+  else if(none) none.style.display="none";
+}
+function partById(id){ for(const p of allParts()) if(p.id===id) return p; return null; }
+function kindOf(p){
+  if(p.grp==="Linkers") return "linker";
+  if(p.grp==="Protease sites") return "protease";
+  if(p.name.indexOf("SUMO")===0) return "cleavable";
+  return "element";
+}
+function renderArch(){
+  for(const side of ["n","c"]){
+    const list=side==="n"?ST.nParts:ST.cParts;
+    const box=byId(side+"List");
+    if(!list.length){ box.innerHTML='<div class="empty">No '+(side==="n"?"N":"C")+'-terminal elements.</div>'; continue; }
+    let h="";
+    list.forEach((p,i)=>{
+      let sw="", nmStyle="", meta="";
+      if(p.ex&&p.em){
+        sw='<span title="emission '+p.em+' nm" style="display:inline-block;width:12px;height:12px;border-radius:3px;'+
+           'background:'+rgbStr(wavelengthRGB(p.em))+';border:1px solid rgba(0,0,0,.2);margin-right:7px;flex:none"></span>';
+        nmStyle=' style="color:'+rgbStr(inkRGB(p.em))+'"';
+        meta='<span class="sq" style="flex:none;color:var(--muted)">ex/em '+p.ex+'/'+p.em+' nm</span>';
+      }
+      h+='<div class="el">'+sw+'<span class="nm"'+nmStyle+'>'+esc(p.name)+'</span>'+
+         '<span class="sq mono">'+esc(p.aa||translate(p.dna))+'</span>'+meta+
+         '<button class="tiny" data-mv="'+side+':'+i+':-1">up</button>'+
+         '<button class="tiny" data-mv="'+side+':'+i+':1">down</button>'+
+         '<button class="tiny" data-rm="'+side+':'+i+'">remove</button></div>';
+    });
+    box.innerHTML=h;
+  }
+  const g=cleanSeq(byId("geneSeq").value);
+  byId("geneElInfo").textContent = g? (isDNA(g)? g.length+" nt": g.length+" aa") : "paste a sequence above";
+}
+function fillEnzymes(){
+  let h="";
+  for(const g of ENZYMES){
+    h+='<div class="enz-group">'+esc(g.grp)+'</div><div class="enz-grid">';
+    for(const e of g.list){
+      h+='<label><input type="checkbox" class="enzchk" value="'+esc(e.name)+'"> '+esc(e.name)+
+         ' <span class="seq">'+esc(e.site)+'</span></label>';
+    }
+    h+='</div>';
+  }
+  byId("enzBox").innerHTML=h;
+}
+function fillFlanks(){
+  for(const id of ["flank5","flank3"]){
+    const s=byId(id); s.innerHTML='<option value="">None</option>';
+    for(const n of FLANKENZ){
+      const o=document.createElement("option"); o.value=n; o.textContent=n+" ("+enzSite(n)+")";
+      s.appendChild(o);
+    }
+  }
+}
+function fillKozak(){
+  const host=byId("host").value, s=byId("kozak");
+  s.innerHTML="";
+  for(const o of KOZAK_OPTS[host]){
+    const e=document.createElement("option"); e.value=o.v; e.textContent=o.t; s.appendChild(e);
+  }
+  byId("spacer").closest(".col").style.display = host==="ecoli" ? "" : "none";
+}
+function gatherState(){
+  const enzAvoid=[];
+  document.querySelectorAll(".enzchk:checked").forEach(c=>{
+    enzAvoid.push({name:c.value, site:enzSite(c.value)});
+  });
+  return {
+    host:byId("host").value, strategy:byId("strategy").value, seed:parseInt(byId("seed").value,10)||1,
+    gcLo:parseFloat(byId("gcLo").value)||30, gcHi:parseFloat(byId("gcHi").value)||70,
+    geneSeq:byId("geneSeq").value, geneName:byId("geneName").value.trim()||"construct",
+    nParts:ST.nParts.map(p=>({name:p.name, aa:p.aa, dna:p.dna, kind:kindOf(p)})),
+    cParts:ST.cParts.map(p=>({name:p.name, aa:p.aa, dna:p.dna, kind:kindOf(p)})),
+    kozak:byId("kozak").value, stop:byId("stopSel").value, spacer:parseInt(byId("spacer").value,10)||7,
+    flank5:byId("flank5").value, flank3:byId("flank3").value, pad:parseInt(byId("pad").value,10)||0,
+    enzAvoid:enzAvoid,
+    customSites:byId("customSites").value.split(/[,\s]+/).map(s=>s.trim().toUpperCase()).filter(Boolean),
+    avoidHomo:byId("avoidHomo").checked, avoidHost:byId("avoidHost").checked,
+    autoLink:byId("autoLink").checked, dropMet:byId("dropMet")?byId("dropMet").checked:false
+  };
+}
+function showTab(t){
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on", b.dataset.t===t));
+  document.querySelectorAll(".tabpane").forEach(p=>p.classList.toggle("on", p.id==="pane-"+t));
+}
+function doBuild(){
+  const st=gatherState();
+  const res=assemble(st);
+  const card=byId("outCard");
+  card.style.display="";
+  if(res.error){
+    byId("pane-map").innerHTML='<div class="msg bad">'+esc(res.error)+'</div>';
+    ["prot","feat","qc","sites","methods","refs","exp"].forEach(t=>byId("pane-"+t).innerHTML="");
+    showTab("map");
+    return;
+  }
+  const q=qcReport(res, st);
+  LAST={res:res, st:st, gb:toGenBank(res, st), q:q};
+  let warnHTML="";
+  for(const w of res.warnings) warnHTML+='<div class="msg warn">'+esc(w)+'</div>';
+  const nbad=q.checks.filter(c=>c.level==="bad").length;
+  const nwarn=q.checks.filter(c=>c.level==="warn").length;
+  warnHTML = '<div class="msg '+(nbad?"bad":(nwarn?"warn":"ok"))+'">'+
+      (nbad? nbad+" blocking issue(s) and ":"")+nwarn+" advisory note(s). See the quality checks tab."+
+      '</div>'+warnHTML;
+  byId("pane-map").innerHTML=warnHTML+renderMap(res);
+  byId("pane-prot").innerHTML=renderProtein(res);
+  byId("pane-feat").innerHTML=renderFeatures(res);
+  byId("pane-qc").innerHTML=renderQC(q);
+  const allEnz=[]; for(const g of ENZYMES) for(const e of g.list) allEnz.push(e);
+  byId("pane-sites").innerHTML=renderSites(res, allEnz);
+  byId("pane-methods").innerHTML=renderMethods(res, st);
+  byId("pane-refs").innerHTML=renderRefs(res, st);
+  byId("pane-exp").innerHTML=renderExport(res, st, LAST.gb);
+  showTab("map");
+}
+function download(name, text, type){
+  const b=new Blob([text], {type:type||"text/plain"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+const DEMO="MASNLTKEQLIAEAKRLNDAGFSVQEAAELLGVSRQRVSQILNGKSVDHSWLLALSKALDVPVEELLRGEEA";
+function init(){
+  loadCustom(); fillParts(); fillEnzymes(); fillFlanks(); fillKozak(); renderArch();
+  byId("host").addEventListener("change", fillKozak);
+  // custom element picker events
+  byId("partSelBtn").addEventListener("click", ()=>openPartPanel(byId("partSelPanel").hidden));
+  byId("partSearch").addEventListener("input", (e)=>filterParts(e.target.value));
+  byId("partSelList").addEventListener("click", (e)=>{ const it=e.target.closest(".partsel-item"); if(it){ selectPart(it.dataset.id); openPartPanel(false); byId("partSelBtn").focus(); } });
+  byId("partSearch").addEventListener("keydown", (e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); const first=Array.from(byId("partSelList").querySelectorAll(".partsel-item")).find(el=>el.style.display!=="none"); if(first){ selectPart(first.dataset.id); openPartPanel(false); byId("partSelBtn").focus(); } }
+    if(e.key==="Escape"){ openPartPanel(false); byId("partSelBtn").focus(); }
+  });
+  document.addEventListener("click", (e)=>{ if(!byId("partSel").contains(e.target)) openPartPanel(false); });
+  byId("geneSeq").addEventListener("input", ()=>{
+    const g=cleanSeq(byId("geneSeq").value);
+    byId("geneBadge").textContent = !g? "No sequence yet."
+      : (isDNA(g)? "Detected DNA, "+g.length+" nt"+(g.length%3? " (not a multiple of 3)":" ("+(g.length/3)+" codons)")
+                 : "Detected protein, "+g.length+" residues");
+    renderArch();
+  });
+  byId("addN").addEventListener("click", ()=>{ const p=partById(byId("partPick").value); if(p){ ST.nParts.push(p); renderArch(); } });
+  byId("addC").addEventListener("click", ()=>{ const p=partById(byId("partPick").value); if(p){ ST.cParts.push(p); renderArch(); } });
+  document.addEventListener("click", (ev)=>{
+    const mv=ev.target.dataset?ev.target.dataset.mv:null, rm=ev.target.dataset?ev.target.dataset.rm:null,
+          dl=ev.target.dataset?ev.target.dataset.dl:null, tb=ev.target.dataset?ev.target.dataset.t:null;
+    if(mv){ const [s,i,d]=mv.split(":"); const L=s==="n"?ST.nParts:ST.cParts;
+            const a=parseInt(i,10), b=a+parseInt(d,10);
+            if(b>=0&&b<L.length){ const t=L[a]; L[a]=L[b]; L[b]=t; renderArch(); } }
+    if(rm){ const [s,i]=rm.split(":"); const L=s==="n"?ST.nParts:ST.cParts; L.splice(parseInt(i,10),1); renderArch(); }
+    if(tb) showTab(tb);
+    const cp=ev.target.dataset?ev.target.dataset.cp:null;
+    if(cp==='methods'){ const t=byId('methodsText'); if(t&&navigator.clipboard){ navigator.clipboard.writeText(t.value); ev.target.textContent='Copied'; setTimeout(()=>ev.target.textContent='Copy methods text',1200);} }
+    if(dl && LAST){
+      const nm=(LAST.st.geneName||"construct").replace(/[^A-Za-z0-9_.-]/g,"_");
+      if(dl==="seq"){ navigator.clipboard?navigator.clipboard.writeText(LAST.res.dna):0; ev.target.textContent="Copied"; setTimeout(()=>ev.target.textContent="Copy sequence",1200); }
+      if(dl==="fasta") download(nm+".fasta", toFasta(nm, LAST.res.dna));
+      if(dl==="gb") download(nm+".gb", LAST.gb);
+      if(dl==="prot") download(nm+"_protein.fasta", toFasta(nm+" protein", LAST.res.protein));
+      if(dl==="tsv") download(nm+"_features.tsv", toFeatureTSV(LAST.res));
+    }
+  });
+  byId("cpAdd").addEventListener("click", ()=>{
+    const n=byId("cpName").value.trim(), s=cleanSeq(byId("cpSeq").value);
+    if(!n||!s){ alert("Give the element a name and a sequence."); return; }
+    const p={id:"cust_"+Date.now(), name:n, grp:"My elements", note:"custom"};
+    if(isDNA(s)){
+      if(s.length%3){ alert("A custom DNA element must be a multiple of 3 nt so the fusion stays in frame."); return; }
+      p.dna=s.replace(/U/g,"T");
+      if(translate(p.dna).indexOf("*")>=0){ alert("That DNA contains a stop codon in frame 1."); return; }
+    } else {
+      const bad=s.replace(/[ACDEFGHIKLMNPQRSTVWY]/g,"");
+      if(bad.length){ alert("Unrecognised residues: "+[...new Set(bad)].join(", ")); return; }
+      p.aa=s;
+    }
+    ST.custom.push(p); saveCustom(); fillParts();
+    byId("cpName").value=""; byId("cpSeq").value="";
+  });
+  byId("build").addEventListener("click", doBuild);
+  byId("loadDemo").addEventListener("click", ()=>{
+    byId("geneSeq").value=DEMO;
+    byId("geneName").value="example_insert";
+    byId("geneSeq").dispatchEvent(new Event("input"));
+    ST.nParts=[partById("his8"), partById("sol_sumoyeastsmt3")];
+    ST.cParts=[partById("g4s2"), partById("fp_egfp")];
+    byId("autoLink").checked=true;
+    ["EcoRI","BamHI","XhoI","NotI","NdeI","BsaI"].forEach(n=>{
+      document.querySelectorAll(".enzchk").forEach(c=>{ if(c.value===n) c.checked=true; });
+    });
+    byId("flank5").value="NdeI"; byId("flank3").value="XhoI";
+    renderArch(); doBuild();
+  });
+  byId("resetAll").addEventListener("click", ()=>{
+    ST.nParts=[]; ST.cParts=[];
+    byId("geneSeq").value=""; byId("customSites").value="";
+    document.querySelectorAll(".enzchk").forEach(c=>c.checked=false);
+    byId("flank5").value=""; byId("flank3").value="";
+    byId("outCard").style.display="none";
+    byId("geneSeq").dispatchEvent(new Event("input"));
+    renderArch();
+  });
+}
+if(typeof document!=="undefined" && document.addEventListener) document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
