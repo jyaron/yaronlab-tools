@@ -5,8 +5,7 @@
 Small, free browser utilities for everyday research tasks, built and
 maintained by the Yaron lab.
 
-- No accounts, no ads, no tracking
-- Nothing you enter ever leaves your browser
+- No accounts, no ads
 - Each tool is a single self-contained HTML file with no dependencies
 
 ## Tools
@@ -14,6 +13,7 @@ maintained by the Yaron lab.
 | URL | Tool |
 |---|---|
 | [/credit](https://yaronlab.tools/credit/) | CRediT author contribution statement generator: paste an author list, check roles in a grid, copy a journal-ready statement |
+| [/dna](https://yaronlab.tools/dna/) | DNA sequence toolbox: cleanup, reverse complement, DNA ↔ RNA, case conversion, line wrapping, position numbering |
 
 ## Offline use
 
