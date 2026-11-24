@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Sequence Toolbox</title>
+<meta name="description" content="Clean up DNA/RNA sequences, reverse complement, change case, rewrap lines, add or strip position numbers.">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --ink: #1a202c;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --border: #e2e8f0;
+    --radius: 10px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+  .site-nav { font-size: 0.85rem; margin-bottom: 18px; }
+  .site-nav a { color: var(--muted); text-decoration: none; }
+  .site-nav a:hover { color: var(--accent); }
+  .site-nav .sep { color: var(--border); margin: 0 6px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 0.92rem; margin-bottom: 24px; }
+  .sub code { font-family: var(--mono); font-size: 0.85em; background: var(--accent-soft); border-radius: 4px; padding: 0 4px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .grid .card { margin-bottom: 0; }
+  label.block { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 8px; }
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    resize: vertical;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+  }
+  textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 0.8rem; margin-top: 6px; }
+  .stats { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin-top: 8px; line-height: 1.6; white-space: pre-wrap; min-height: 2.6em; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+  }
+  button:hover { filter: brightness(1.08); }
+  button.secondary {
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--border);
+  }
+  button.secondary:hover { border-color: var(--accent); filter: none; }
+  button.small { padding: 4px 10px; font-size: 0.8rem; font-weight: 500; }
+  .io-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+  .io-head label.block { margin: 0; }
+  .io-head .btns { display: flex; gap: 6px; align-items: center; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .row:last-child { margin-bottom: 0; }
+  .row .label {
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); min-width: 92px; flex-shrink: 0;
+  }
+  .row .inline-hint { color: var(--muted); font-size: 0.8rem; }
+  label.chk { font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+  select, input[type="number"] {
+    font: inherit; font-size: 0.85rem; padding: 4px 6px;
+    border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--ink);
+  }
+  input[type="number"] { width: 70px; }
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  .copied { color: #16a34a; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: opacity 0.25s; }
+  .copied.show { opacity: 1; }
+  .warn { color: #b45309; font-size: 0.82rem; margin-top: 8px; min-height: 1em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>dna</span></nav>
+  <h1>DNA Sequence Toolbox</h1>
+  <div class="sub">Clean up pasted sequences, reverse complement, DNA&nbsp;&harr;&nbsp;RNA, change case, rewrap lines, and add or strip position numbers. FASTA headers (<code>&gt;&hellip;</code>) are preserved and never transformed.</div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="io-head">
+        <label class="block">Input</label>
+        <div class="btns">
+          <button class="secondary small" onclick="loadExample()">Example</button>
+          <button class="secondary small" onclick="document.getElementById('inp').value='';updateStats()">Clear</button>
+        </div>
+      </div>
+      <textarea id="inp" spellcheck="false" placeholder="Paste DNA / RNA sequence here (plain, FASTA, GenBank-style numbered lines...)" oninput="updateStats()"></textarea>
+      <div class="stats" id="inStats"></div>
+    </div>
+
+    <div class="card">
+      <div class="io-head">
+        <label class="block">Output</label>
+        <div class="btns">
+          <button class="small" onclick="copyOut()">Copy</button>
+          <button class="secondary small" onclick="useAsInput()">&#8617; Use as input</button>
+          <button class="secondary small" onclick="downloadOut()">Download</button>
+          <span class="copied" id="flash">copied!</span>
+        </div>
+      </div>
+      <textarea id="out" spellcheck="false" placeholder="Result appears here..."></textarea>
+      <div class="stats" id="outStats"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <div class="row">
+      <span class="label">Cleanup</span>
+      <button onclick="run('clean')">Clean sequence</button>
+      <label class="chk"><input type="checkbox" id="keepIUPAC" checked> keep IUPAC ambiguity codes (RYSWKMBDHVN)</label>
+      <label class="chk"><input type="checkbox" id="keepGaps"> keep gaps (-)</label>
+      <span class="inline-hint">removes whitespace, digits &amp; non-sequence characters</span>
+    </div>
+    <hr class="sep">
+    <div class="row">
+      <span class="label">Transform</span>
+      <button onclick="run('revcomp')">Reverse complement</button>
+      <button class="secondary" onclick="run('comp')">Complement</button>
+      <button class="secondary" onclick="run('rev')">Reverse</button>
+      <button class="secondary" onclick="run('dna2rna')">DNA &rarr; RNA</button>
+      <button class="secondary" onclick="run('rna2dna')">RNA &rarr; DNA</button>
+    </div>
+    <hr class="sep">
+    <div class="row">
+      <span class="label">Case</span>
+      <button class="secondary" onclick="run('upper')">UPPERCASE</button>
+      <button class="secondary" onclick="run('lower')">lowercase</button>
+    </div>
+    <hr class="sep">
+    <div class="row">
+      <span class="label">Layout</span>
+      <button class="secondary" onclick="run('oneline')">Remove line breaks</button>
+      <button onclick="run('wrap')">Wrap lines</button>
+      <span class="inline-hint">at</span> <input type="number" id="wrapLen" value="60" min="1"> <span class="inline-hint">nt, blocks of</span>
+      <input type="number" id="blockLen" value="0" min="0"> <span class="inline-hint">nt (0 = none)</span>
+    </div>
+    <div class="row">
+      <span class="label">Numbering</span>
+      <button class="secondary" onclick="run('numbers')">Add position numbers</button>
+      <select id="numStyle">
+        <option value="left">position at line start</option>
+        <option value="right">position at line end</option>
+        <option value="line">plain line numbers (1, 2, 3...)</option>
+      </select>
+      <button class="secondary" onclick="run('stripnum')">Strip numbers</button>
+    </div>
+    <div class="warn" id="note"></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const COMP = (() => {
+  const pairs = {A:'T',T:'A',G:'C',C:'G',U:'A',R:'Y',Y:'R',S:'S',W:'W',K:'M',M:'K',
+                 B:'V',V:'B',D:'H',H:'D',N:'N','-':'-','.':'.','*':'*'};
+  const m = {};
+  for (const [k,v] of Object.entries(pairs)) { m[k]=v; m[k.toLowerCase()]=v.toLowerCase(); }
+  return m;
+})();
+
+function note(msg) { $('note').textContent = msg || ''; }
+
+// Split text into records: FASTA headers kept separate from sequence bodies.
+function parseRecords(text) {
+  const recs = [];
+  let cur = {header: null, body: []};
+  for (const line of text.split(/\r?\n/)) {
+    if (line.startsWith('>') || line.startsWith(';')) {
+      if (cur.header !== null || cur.body.length) recs.push(cur);
+      cur = {header: line, body: []};
+    } else {
+      cur.body.push(line);
+    }
+  }
+  recs.push(cur);
+  return recs;
+}
+
+function assemble(recs) {
+  const out = [];
+  for (const r of recs) {
+    if (r.header !== null) out.push(r.header);
+    out.push(...r.body);
+  }
+  return out.join('\n');
+}
+
+// ---- per-record sequence operations (operate on body text) ----
+
+function cleanBody(text) {
+  let allowed = 'ACGTU';
+  if ($('keepIUPAC').checked) allowed += 'RYSWKMBDHVN';
+  let extra = $('keepGaps').checked ? '\\-' : '';
+  const re = new RegExp('[^' + allowed + allowed.toLowerCase() + extra + ']', 'g');
+  return text.replace(re, '');
+}
+
+function seqOnly(text) { return text.replace(/\s+/g, ''); }
+
+function complement(s) {
+  let bad = 0, out = '';
+  for (const ch of s) {
+    if (COMP[ch] !== undefined) out += COMP[ch];
+    else { out += ch; if (!/\s/.test(ch)) bad++; }
+  }
+  if (bad) note(bad + ' character(s) had no defined complement and were left unchanged — consider running Clean first.');
+  return out;
+}
+
+function wrapSeq(s, width, block) {
+  const lines = [];
+  for (let i = 0; i < s.length; i += width) {
+    let chunk = s.slice(i, i + width);
+    if (block > 0) chunk = chunk.match(new RegExp('.{1,' + block + '}', 'g')).join(' ');
+    lines.push(chunk);
+  }
+  return lines.join('\n');
+}
+
+function addNumbers(bodyText, style) {
+  const lines = bodyText.split('\n').filter(l => l.trim().length);
+  const out = [];
+  let pos = 0, lineNo = 0;
+  // width for alignment
+  const total = lines.reduce((a,l) => a + l.replace(/[\s]/g,'').length, 0);
+  const w = String(Math.max(total, lines.length)).length;
+  for (const l of lines) {
+    lineNo++;
+    const ntInLine = l.replace(/[\s]/g,'').length;
+    if (style === 'line') {
+      out.push(String(lineNo).padStart(w) + '  ' + l);
+    } else if (style === 'right') {
+      pos += ntInLine;
+      out.push(l + '  ' + pos);
+    } else { // left: position of first nt in line
+      out.push(String(pos + 1).padStart(w) + '  ' + l);
+      pos += ntInLine;
+    }
+  }
+  return out.join('\n');
+}
+
+function stripNumbers(text) {
+  return text.split('\n').map(l =>
+    l.replace(/^\s*\d+\s+/, '').replace(/\s+\d+\s*$/, '')
+  ).join('\n');
+}
+
+// ---- dispatcher ----
+
+function run(op) {
+  note('');
+  const text = $('inp').value;
+  if (!text.trim()) { $('out').value = ''; updateStats(); return; }
+  const recs = parseRecords(text);
+  const width = Math.max(1, parseInt($('wrapLen').value) || 60);
+  const block = Math.max(0, parseInt($('blockLen').value) || 0);
+  const numStyle = $('numStyle').value;
+
+  for (const r of recs) {
+    let body = r.body.join('\n');
+    switch (op) {
+      case 'clean':   body = wrapOrFlat(cleanBodyLines(body)); break;
+      case 'revcomp': body = applyFlat(body, s => complement(s).split('').reverse().join('')); break;
+      case 'comp':    body = applyKeepLayout(body, complement); break;
+      case 'rev':     body = applyFlat(body, s => s.split('').reverse().join('')); break;
+      case 'dna2rna': body = applyKeepLayout(body, s => s.replace(/T/g,'U').replace(/t/g,'u')); break;
+      case 'rna2dna': body = applyKeepLayout(body, s => s.replace(/U/g,'T').replace(/u/g,'t')); break;
+      case 'upper':   body = applyKeepLayout(body, s => s.toUpperCase()); break;
+      case 'lower':   body = applyKeepLayout(body, s => s.toLowerCase()); break;
+      case 'oneline': body = seqOnly(body); break;
+      case 'wrap':    body = wrapSeq(seqOnly(stripNumbers(body)), width, block); break;
+      case 'numbers': body = addNumbers(body, numStyle); break;
+      case 'stripnum':body = stripNumbers(body); break;
+    }
+    r.body = body.split('\n');
+    // drop trailing empty lines inside records
+    while (r.body.length > 1 && r.body[r.body.length-1] === '') r.body.pop();
+  }
+
+  function cleanBodyLines(b) {
+    return b.split('\n').map(cleanBody).filter(l => l.length).join('\n');
+  }
+  function wrapOrFlat(b) { return b; } // cleaned per line, layout preserved minus junk
+  function applyFlat(b, fn) { return fn(seqOnly(stripNumbers(b))); }
+  function applyKeepLayout(b, fn) { return fn(b); }
+
+  $('out').value = assemble(recs);
+  updateStats();
+}
+
+// ---- stats ----
+
+function seqStats(text) {
+  const recs = parseRecords(text);
+  let seq = '';
+  let nrec = 0;
+  for (const r of recs) {
+    if (r.header !== null) nrec++;
+    seq += stripNumbers(r.body.join('\n')).replace(/\s+/g,'');
+  }
+  if (!seq) return nrec ? nrec + ' record(s), no sequence' : '';
+  const u = seq.toUpperCase();
+  const count = ch => (u.match(new RegExp(ch,'g')) || []).length;
+  const a = count('A'), c = count('C'), g = count('G'), t = count('T'), uu = count('U');
+  const known = a+c+g+t+uu;
+  const other = seq.length - known;
+  const gc = known ? ((g+c)/known*100).toFixed(1) : '0';
+  let s = `length: ${seq.length} nt   GC: ${gc}%\n` +
+          `A:${a} C:${c} G:${g} ` + (uu > t ? `U:${uu} (T:${t})` : `T:${t}` + (uu?` U:${uu}`:''));
+  if (other) s += `  other:${other}`;
+  if (nrec > 1) s = nrec + ' FASTA records | ' + s;
+  return s;
+}
+
+function updateStats() {
+  $('inStats').textContent = seqStats($('inp').value);
+  $('outStats').textContent = seqStats($('out').value);
+}
+
+// ---- utilities ----
+
+function copyOut() {
+  navigator.clipboard.writeText($('out').value).then(() => {
+    $('flash').classList.add('show');
+    setTimeout(() => $('flash').classList.remove('show'), 1200);
+  });
+}
+
+function useAsInput() {
+  $('inp').value = $('out').value;
+  $('out').value = '';
+  updateStats();
+}
+
+function downloadOut() {
+  const blob = new Blob([$('out').value], {type: 'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sequence.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadExample() {
+  $('inp').value = `>example gene fragment
+   1 atgGCTAGCT agctagcatc GATCGATCGA
+  31 tcgatcgtag ctagcTAGCA TCGATCGATT
+  61 aggctagcat cg`;
+  updateStats();
+}
+
+updateStats();
+</script>
+</body>
+</html>
