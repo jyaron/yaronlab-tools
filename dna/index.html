@@ -106,7 +106,7 @@
 <div class="wrap">
   <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>dna</span></nav>
   <h1>DNA Sequence Toolbox</h1>
-  <div class="sub">Clean up pasted sequences, reverse complement, DNA&nbsp;&harr;&nbsp;RNA, change case, rewrap lines, and add or strip position numbers. FASTA headers (<code>&gt;&hellip;</code>) are preserved and never transformed.</div>
+  <div class="sub">Clean up pasted sequences, reverse complement, DNA&nbsp;&harr;&nbsp;RNA, change case, rewrap lines, and add or strip position numbers. Operations chain: each button applies to the current result; edit the input to start over. FASTA headers (<code>&gt;&hellip;</code>) are preserved and never transformed.</div>
 
   <div class="grid">
     <div class="card">
@@ -114,10 +114,10 @@
         <label class="block">Input</label>
         <div class="btns">
           <button class="secondary small" onclick="loadExample()">Example</button>
-          <button class="secondary small" onclick="document.getElementById('inp').value='';updateStats()">Clear</button>
+          <button class="secondary small" onclick="document.getElementById('inp').value='';inputEdited()">Clear</button>
         </div>
       </div>
-      <textarea id="inp" spellcheck="false" placeholder="Paste DNA / RNA sequence here (plain, FASTA, GenBank-style numbered lines...)" oninput="updateStats()"></textarea>
+      <textarea id="inp" spellcheck="false" placeholder="Paste DNA / RNA sequence here (plain, FASTA, GenBank-style numbered lines...)" oninput="inputEdited()"></textarea>
       <div class="stats" id="inStats"></div>
     </div>
 
@@ -252,7 +252,7 @@ function wrapSeq(s, width, block) {
 }
 
 function addNumbers(bodyText, style) {
-  const lines = bodyText.split('\n').filter(l => l.trim().length);
+  const lines = stripNumbers(bodyText).split('\n').filter(l => l.trim().length);
   const out = [];
   let pos = 0, lineNo = 0;
   // width for alignment
@@ -276,15 +276,22 @@ function addNumbers(bodyText, style) {
 
 function stripNumbers(text) {
   return text.split('\n').map(l =>
-    l.replace(/^\s*\d+\s+/, '').replace(/\s+\d+\s*$/, '')
+    l.replace(/^(\s*\d+\s+)+/, '').replace(/(\s+\d+\s*)+$/, '')
   ).join('\n');
 }
 
 // ---- dispatcher ----
 
+let chainActive = false;   // true after an operation: next op applies to the output (result) pane
+
+function inputEdited() {
+  chainActive = false;
+  updateStats();
+}
+
 function run(op) {
   note('');
-  const text = $('inp').value;
+  const text = (chainActive && $('out').value.trim()) ? $('out').value : $('inp').value;
   if (!text.trim()) { $('out').value = ''; updateStats(); return; }
   const recs = parseRecords(text);
   const width = Math.max(1, parseInt($('wrapLen').value) || 60);
@@ -320,6 +327,7 @@ function run(op) {
   function applyKeepLayout(b, fn) { return fn(b); }
 
   $('out').value = assemble(recs);
+  chainActive = true;
   updateStats();
 }
 
@@ -364,6 +372,7 @@ function copyOut() {
 function useAsInput() {
   $('inp').value = $('out').value;
   $('out').value = '';
+  chainActive = false;
   updateStats();
 }
 
@@ -381,6 +390,7 @@ function loadExample() {
    1 atgGCTAGCT agctagcatc GATCGATCGA
   31 tcgatcgtag ctagcTAGCA TCGATCGATT
   61 aggctagcat cg`;
+  chainActive = false;
   updateStats();
 }
 
