@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRediT Statement Generator</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --ink: #1a202c;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+  .site-nav { font-size: 0.85rem; margin-bottom: 18px; }
+  .site-nav a { color: var(--muted); text-decoration: none; }
+  .site-nav a:hover { color: var(--accent); }
+  .site-nav .sep { color: var(--border); margin: 0 6px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 0.92rem; margin-bottom: 24px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  label.block { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 8px; }
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 10px 12px;
+    font: inherit;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 0.8rem; margin-top: 6px; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+  }
+  button:hover { filter: brightness(1.08); }
+  button.secondary {
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--border);
+  }
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+
+  /* matrix */
+  .matrix-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: center; }
+  th.rolehead {
+    font-size: 0.72rem;
+    font-weight: 600;
+    vertical-align: bottom;
+    height: 150px;
+    min-width: 34px;
+    max-width: 40px;
+    position: relative;
+  }
+  th.rolehead span {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    display: inline-block;
+    max-height: 140px;
+  }
+  td.author, th.authorhead {
+    text-align: left;
+    white-space: nowrap;
+    font-size: 0.88rem;
+    padding-right: 14px;
+    position: sticky;
+    left: 0;
+    background: var(--card);
+    z-index: 1;
+  }
+  th.authorhead { font-size: 0.8rem; }
+  td.author .initials { color: var(--muted); font-size: 0.75rem; margin-left: 6px; }
+  tr:hover td { background: #f8fafc; }
+  tr:hover td.author { background: #f8fafc; }
+  input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+  td.cell { cursor: pointer; }
+
+  /* output */
+  #statement {
+    width: 100%;
+    min-height: 130px;
+    padding: 12px;
+    font: inherit;
+    font-size: 0.92rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fbfcfd;
+    white-space: pre-wrap;
+  }
+  .opts { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.85rem; margin-bottom: 12px; align-items: center; }
+  .opts label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  select { font: inherit; font-size: 0.85rem; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; }
+  .copied { color: #16a34a; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: opacity 0.25s; }
+  .copied.show { opacity: 1; }
+  .hidden { display: none; }
+  .warn { color: #b45309; font-size: 0.82rem; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>credit</span></nav>
+  <h1>CRediT Author Contribution Statement Generator</h1>
+  <div class="sub">Paste authors (one per line), check contributor roles, and copy the formatted statement. Uses the 14 <a href="https://credit.niso.org/" target="_blank" rel="noopener">CRediT (Contributor Roles Taxonomy)</a> roles.</div>
+
+  <div class="card" id="inputCard">
+    <label class="block" for="authorsBox">Authors (one per line, in author order)</label>
+    <textarea id="authorsBox" placeholder="Jane Q. Doe&#10;John A. Smith&#10;María García-López"></textarea>
+    <div class="hint">Press <b>Ctrl/Cmd + Enter</b> in the box, or click the button, to build the checkbox grid.</div>
+    <div class="btn-row">
+      <button id="processBtn">Build checkbox grid →</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="matrixCard">
+    <label class="block">Check each author's roles</label>
+    <div class="matrix-scroll">
+      <table id="matrix"></table>
+    </div>
+    <div class="warn hidden" id="dupWarn"></div>
+    <div class="btn-row">
+      <button id="generateBtn">Generate statement (Enter)</button>
+      <button class="secondary" id="clearBtn">Clear all checks</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="outputCard">
+    <label class="block">Author contribution statement</label>
+    <div class="opts">
+      <label><input type="radio" name="namemode" value="initials" checked> Initials (J.Q.D.)</label>
+      <label><input type="radio" name="namemode" value="full"> Full names</label>
+      <label>Group by:
+        <select id="groupmode">
+          <option value="author">Author (Author: roles)</option>
+          <option value="role">Role (Role: authors)</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="prefixToggle" checked> "CRediT author statement:" prefix</label>
+    </div>
+    <div id="statement" tabindex="0"></div>
+    <div class="btn-row">
+      <button id="copyBtn">Copy to clipboard</button>
+      <span class="copied" id="copiedMsg">Copied ✓</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROLES = [
+  "Conceptualization",
+  "Data curation",
+  "Formal analysis",
+  "Funding acquisition",
+  "Investigation",
+  "Methodology",
+  "Project administration",
+  "Resources",
+  "Software",
+  "Supervision",
+  "Validation",
+  "Visualization",
+  "Writing \u2013 original draft",
+  "Writing \u2013 review & editing"
+];
+
+let authors = []; // {name, initials}
+
+function initialsOf(name) {
+  // Split on whitespace; handle hyphenated parts (García-López -> G.-L.)
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.map(p => {
+    // strip trailing commas/periods already present
+    const clean = p.replace(/[.,]+$/g, "");
+    if (!clean) return "";
+    const sub = clean.split("-").map(s => s ? (s[0].toUpperCase() + ".") : "");
+    return sub.join("-");
+  }).join("");
+}
+
+function dedupeInitials() {
+  // If two authors share identical initials, flag it so user can distinguish manually.
+  const seen = {};
+  const dups = new Set();
+  authors.forEach(a => {
+    if (seen[a.initials]) dups.add(a.initials);
+    seen[a.initials] = true;
+  });
+  const warn = document.getElementById("dupWarn");
+  if (dups.size) {
+    warn.textContent = "Note: identical initials for multiple authors (" +
+      Array.from(dups).join(", ") + "). Consider using full names, or edit the copied text.";
+    warn.classList.remove("hidden");
+  } else {
+    warn.classList.add("hidden");
+  }
+}
+
+function buildMatrix() {
+  const raw = document.getElementById("authorsBox").value;
+  const names = raw.split(/\n/).map(s => s.trim()).filter(Boolean);
+  if (!names.length) return;
+  authors = names.map(n => ({ name: n, initials: initialsOf(n) }));
+
+  const table = document.getElementById("matrix");
+  table.innerHTML = "";
+
+  const thead = document.createElement("tr");
+  const corner = document.createElement("th");
+  corner.className = "authorhead";
+  corner.textContent = "Author";
+  thead.appendChild(corner);
+  ROLES.forEach(r => {
+    const th = document.createElement("th");
+    th.className = "rolehead";
+    const span = document.createElement("span");
+    span.textContent = r;
+    th.appendChild(span);
+    thead.appendChild(th);
+  });
+  table.appendChild(thead);
+
+  authors.forEach((a, ai) => {
+    const tr = document.createElement("tr");
+    const tdName = document.createElement("td");
+    tdName.className = "author";
+    tdName.innerHTML = a.name + '<span class="initials">' + a.initials + "</span>";
+    tr.appendChild(tdName);
+    ROLES.forEach((r, ri) => {
+      const td = document.createElement("td");
+      td.className = "cell";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.a = ai;
+      cb.dataset.r = ri;
+      td.appendChild(cb);
+      // click anywhere in cell toggles
+      td.addEventListener("click", e => {
+        if (e.target !== cb) { cb.checked = !cb.checked; }
+      });
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+
+  dedupeInitials();
+  document.getElementById("matrixCard").classList.remove("hidden");
+  document.getElementById("outputCard").classList.add("hidden");
+  document.getElementById("matrixCard").scrollIntoView({ behavior: "smooth" });
+}
+
+function getChecks() {
+  // returns map authorIndex -> [roleIndex...]
+  const byAuthor = authors.map(() => []);
+  document.querySelectorAll("#matrix input[type=checkbox]").forEach(cb => {
+    if (cb.checked) byAuthor[+cb.dataset.a].push(+cb.dataset.r);
+  });
+  return byAuthor;
+}
+
+function joinNames(list) {
+  if (list.length === 1) return list[0];
+  if (list.length === 2) return list[0] + " and " + list[1];
+  return list.slice(0, -1).join(", ") + ", and " + list[list.length - 1];
+}
+
+function generate() {
+  const byAuthor = getChecks();
+  const useInitials = document.querySelector('input[name="namemode"]:checked').value === "initials";
+  const groupMode = document.getElementById("groupmode").value;
+  const prefix = document.getElementById("prefixToggle").checked ? "CRediT author statement: " : "";
+  const nameOf = a => useInitials ? a.initials : a.name;
+
+  let parts = [];
+  if (groupMode === "author") {
+    authors.forEach((a, ai) => {
+      const rs = byAuthor[ai];
+      if (!rs.length) return;
+      parts.push(nameOf(a) + ": " + rs.map(ri => ROLES[ri]).join(", "));
+    });
+  } else {
+    ROLES.forEach((r, ri) => {
+      const who = [];
+      authors.forEach((a, ai) => { if (byAuthor[ai].includes(ri)) who.push(nameOf(a)); });
+      if (who.length) parts.push(r + ": " + joinNames(who));
+    });
+  }
+
+  const text = parts.length ? prefix + parts.join(". ") + "." :
+    "(No roles checked yet. Tick at least one box above.)";
+  document.getElementById("statement").textContent = text;
+  document.getElementById("outputCard").classList.remove("hidden");
+  document.getElementById("outputCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function copyStatement() {
+  const text = document.getElementById("statement").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const msg = document.getElementById("copiedMsg");
+    msg.classList.add("show");
+    setTimeout(() => msg.classList.remove("show"), 1600);
+  }).catch(() => {
+    // fallback: select text for manual copy
+    const el = document.getElementById("statement");
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+}
+
+document.getElementById("processBtn").addEventListener("click", buildMatrix);
+document.getElementById("authorsBox").addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); buildMatrix(); }
+});
+document.getElementById("generateBtn").addEventListener("click", generate);
+document.getElementById("clearBtn").addEventListener("click", () => {
+  document.querySelectorAll("#matrix input[type=checkbox]").forEach(cb => cb.checked = false);
+});
+// Enter anywhere (outside the textarea) regenerates the statement
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && e.target.tagName !== "BUTTON"
+      && !document.getElementById("matrixCard").classList.contains("hidden")) {
+    generate();
+  }
+});
+// live update of the statement when options change (if output already shown)
+["groupmode", "prefixToggle"].forEach(id =>
+  document.getElementById(id).addEventListener("change", () => {
+    if (!document.getElementById("outputCard").classList.contains("hidden")) generate();
+  }));
+document.querySelectorAll('input[name="namemode"]').forEach(r =>
+  r.addEventListener("change", () => {
+    if (!document.getElementById("outputCard").classList.contains("hidden")) generate();
+  }));
+document.getElementById("copyBtn").addEventListener("click", copyStatement);
+</script>
+</body>
+</html>
