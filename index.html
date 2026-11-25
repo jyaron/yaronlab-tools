@@ -4,96 +4,48 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>yaronlab.tools: research tools from the Yaron lab</title>
-<meta name="description" content="Research tools from the Yaron lab, including benchsiDE for RNA-seq differential expression, plus free single-file utilities for everyday lab tasks.">
+<meta name="description" content="Research tools from the Yaron lab: benchsiDE for RNA-seq differential expression, plus free single-file utilities for cloning, protein engineering, and lab writing.">
 <style>
   :root {
-    --bg: #f6f7f9;
-    --card: #ffffff;
-    --ink: #1a202c;
-    --muted: #64748b;
-    --accent: #2563eb;
-    --accent-soft: #dbeafe;
-    --accent-deep: #1e3a8a;
-    --border: #e2e8f0;
-    --radius: 10px;
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1a202c; --muted: #64748b;
+    --accent: #2563eb; --accent-soft: #dbeafe; --accent-deep: #1e3a8a; --border: #e2e8f0; --radius: 10px;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    line-height: 1.5;
-  }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         background: var(--bg); color: var(--ink); line-height: 1.5; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 48px 20px 80px; }
   header h1 { font-size: 1.9rem; margin: 0 0 6px; letter-spacing: -0.01em; }
   header h1 .tld { color: var(--accent); }
   .tagline { color: var(--muted); font-size: 1rem; margin: 0 0 32px; }
 
-  /* flagship / featured tool */
-  .featured {
-    display: block;
-    position: relative;
-    text-decoration: none;
-    color: inherit;
-    border-radius: 14px;
-    padding: 26px 26px 24px;
-    margin-bottom: 34px;
-    background:
-      radial-gradient(120% 140% at 0% 0%, rgba(37,99,235,0.10), rgba(37,99,235,0) 60%),
-      linear-gradient(180deg, #ffffff 0%, #f3f7ff 100%);
-    border: 1px solid #c7d7f7;
-    box-shadow: 0 6px 22px rgba(37, 99, 235, 0.10);
-    transition: box-shadow 0.14s, transform 0.14s, border-color 0.14s;
-  }
+  .featured { display: block; position: relative; text-decoration: none; color: inherit; border-radius: 14px;
+    padding: 26px 26px 24px; margin-bottom: 38px;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(37,99,235,0.10), rgba(37,99,235,0) 60%), linear-gradient(180deg, #ffffff 0%, #f3f7ff 100%);
+    border: 1px solid #c7d7f7; box-shadow: 0 6px 22px rgba(37, 99, 235, 0.10);
+    transition: box-shadow 0.14s, transform 0.14s, border-color 0.14s; }
   .featured:hover { box-shadow: 0 10px 30px rgba(37, 99, 235, 0.18); transform: translateY(-1px); border-color: var(--accent); }
-  .featured .badge {
-    display: inline-block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
-    text-transform: uppercase; color: #fff; background: var(--accent);
-    padding: 3px 9px; border-radius: 999px; margin-bottom: 12px;
-  }
+  .featured .badge { display: inline-block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #fff; background: var(--accent); padding: 3px 9px; border-radius: 999px; margin-bottom: 12px; }
   .featured .name { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 2px; }
   .featured .name .de { color: var(--accent); }
   .featured .host { font-size: 0.82rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin-bottom: 12px; }
-  .featured .host .arrow { font-family: inherit; }
   .featured .blurb { margin: 0 0 14px; font-size: 0.95rem; color: #334155; }
   .chips { display: flex; flex-wrap: wrap; gap: 7px; }
-  .chip { font-size: 0.75rem; font-weight: 600; color: var(--accent-deep); background: var(--accent-soft);
-          border-radius: 999px; padding: 3px 10px; }
+  .chip { font-size: 0.75rem; font-weight: 600; color: var(--accent-deep); background: var(--accent-soft); border-radius: 999px; padding: 3px 10px; }
 
-  /* section label */
-  .section-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
-                   color: var(--muted); font-weight: 700; margin: 0 0 12px; }
+  .section-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    font-weight: 700; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .cat { margin-bottom: 30px; }
+  .tools { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .tool-card { display: block; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px; text-decoration: none; color: inherit; transition: border-color 0.12s, box-shadow 0.12s; }
+  .tool-card:hover { border-color: var(--accent); box-shadow: 0 2px 10px rgba(37, 99, 235, 0.08); }
+  .tool-card h2 { font-size: 1.02rem; margin: 0 0 4px; }
+  .tool-card h2 .path { color: var(--accent); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.93rem; }
+  .tool-card p { margin: 0; color: var(--muted); font-size: 0.88rem; }
 
-  /* utility tools */
-  .tools { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-  .tool-card {
-    display: block;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color 0.12s, box-shadow 0.12s;
-  }
-  .tool-card:hover {
-    border-color: var(--accent);
-    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.08);
-  }
-  .tool-card h2 { font-size: 1.05rem; margin: 0 0 4px; }
-  .tool-card h2 .path { color: var(--accent); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.95rem; }
-  .tool-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
-
-  footer {
-    margin-top: 48px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 0.82rem;
-  }
-  footer a { color: var(--muted); }
-  footer a:hover { color: var(--accent); }
+  footer { margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.82rem; }
+  footer a { color: var(--muted); } footer a:hover { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -103,11 +55,11 @@
     <p class="tagline">Research tools from the Yaron lab.</p>
   </header>
 
-  <!-- FLAGSHIP TOOL -->
+  <!-- FLAGSHIP -->
   <a class="featured" href="https://www.benchside.org">
     <span class="badge">Flagship tool</span>
     <div class="name">benchsi<span class="de">DE</span></div>
-    <div class="host">benchside.org <span class="arrow">&#8599;</span></div>
+    <div class="host">benchside.org &#8599;</div>
     <p class="blurb">Differential expression and cross-dataset analysis of bulk RNA-seq counts, with no R and no install. Filtering, TMM normalization, limma moderated-t and voom with covariates and factorial designs, gene-set and co-expression tests, random-effects meta-analysis across datasets, and replication of a signature in independent data, including across species by homology.</p>
     <div class="chips">
       <span class="chip">limma &middot; voom</span>
@@ -118,28 +70,44 @@
     </div>
   </a>
 
-  <p class="section-label">Utilities</p>
-  <ul class="tools">
-    <!-- TOOL CARDS: copy a <li> block below to add a new tool -->
-    <li>
-      <a class="tool-card" href="/construct/">
+  <!-- CATEGORY: cloning & protein engineering -->
+  <div class="cat">
+    <p class="section-label">Cloning &amp; protein engineering</p>
+    <ul class="tools">
+      <li><a class="tool-card" href="/construct/">
         <h2><span class="path">/construct</span>: plasmid construct builder</h2>
-        <p>Assemble a synthesis-ready coding sequence: terminal fusions and affinity tags, fluorescent proteins and self-labeling tags, linkers, codon optimization for mammalian or E. coli expression, Kozak or Shine-Dalgarno signals, and restriction-site avoidance. Generates a methods paragraph with citations and exports annotated GenBank.</p>
-      </a>
-    </li>
-    <li>
-      <a class="tool-card" href="/dna/">
+        <p>Assemble a synthesis-ready coding sequence: fusion and affinity tags, fluorescent proteins and self-labeling tags, linkers, codon optimization for mammalian or E. coli expression, Kozak or Shine-Dalgarno signals, restriction-site avoidance, a cited methods paragraph, and annotated GenBank export.</p></a></li>
+      <li><a class="tool-card" href="/mutate/">
+        <h2><span class="path">/mutate</span>: site-directed mutagenesis primers</h2>
+        <p>Design primers for substitutions, insertions, and deletions, with nearest-neighbor Tm, host-optimized codons, overlapping or back-to-back styles, and a ready-to-order table with methods text.</p></a></li>
+      <li><a class="tool-card" href="/scan/">
+        <h2><span class="path">/scan</span>: scanning mutagenesis designer</h2>
+        <p>Alanine, glycine, or saturation scans across a range of positions: per-position primers, degenerate codons, and library complexity, as single-site variants.</p></a></li>
+      <li><a class="tool-card" href="/degenerate/">
+        <h2><span class="path">/degenerate</span>: degenerate codon designer</h2>
+        <p>Find the minimal IUPAC degenerate codon that encodes a chosen amino-acid set, decode a degenerate codon, and compute library diversity.</p></a></li>
+    </ul>
+  </div>
+
+  <!-- CATEGORY: sequence utilities -->
+  <div class="cat">
+    <p class="section-label">Sequence utilities</p>
+    <ul class="tools">
+      <li><a class="tool-card" href="/dna/">
         <h2><span class="path">/dna</span>: DNA sequence toolbox</h2>
-        <p>Clean up pasted sequences, reverse complement, DNA &harr; RNA, change case, rewrap lines, and add or strip position numbers. FASTA-aware.</p>
-      </a>
-    </li>
-    <li>
-      <a class="tool-card" href="/credit/">
+        <p>Clean up pasted sequences, reverse complement, DNA &harr; RNA, change case, rewrap lines, and add or strip position numbers. FASTA-aware.</p></a></li>
+    </ul>
+  </div>
+
+  <!-- CATEGORY: writing & publishing -->
+  <div class="cat">
+    <p class="section-label">Writing &amp; publishing</p>
+    <ul class="tools">
+      <li><a class="tool-card" href="/credit/">
         <h2><span class="path">/credit</span>: CRediT statement generator</h2>
-        <p>Paste an author list, check contributor roles in a grid, and copy a journal-ready CRediT author contribution statement.</p>
-      </a>
-    </li>
-  </ul>
+        <p>Paste an author list, check contributor roles in a grid, and copy a journal-ready CRediT author contribution statement.</p></a></li>
+    </ul>
+  </div>
 
   <footer>
     Built and maintained by the Yaron lab. The utilities are single self-contained pages you can save and run offline; benchsiDE lives at <a href="https://www.benchside.org">benchside.org</a>.
