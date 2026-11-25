@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Degenerate codon designer | yaronlab.tools</title>
+<meta name="description" content="Find the minimal IUPAC degenerate codon that encodes a chosen set of amino acids, decode a degenerate codon, and compute library diversity.">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1a202c; --muted:#64748b; --accent:#2563eb;
+          --accent-soft:#dbeafe; --accent-deep:#1e3a8a; --border:#e2e8f0; --radius:10px;
+          --ok:#15803d; --ok-soft:#dcfce7; --warn:#b45309; --warn-soft:#fef3c7; --bad:#b91c1c; --bad-soft:#fee2e2; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 80px; }
+  .site-nav { font-size:0.85rem; margin-bottom:18px; }
+  .site-nav a { color:var(--muted); text-decoration:none; } .site-nav a:hover { color:var(--accent); }
+  .site-nav .sep { color:var(--border); margin:0 6px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:0.92rem; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; }
+  .card h2 { font-size:1rem; margin:0 0 4px; } .card h2 .num { color:var(--accent); margin-right:6px; }
+  .card .note { color:var(--muted); font-size:0.82rem; margin:0 0 14px; }
+  label.block { font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px; }
+  textarea, input[type=text], input[type=number], select { font:inherit; border:1px solid var(--border);
+     border-radius:8px; padding:8px 10px; background:#fff; color:inherit; }
+  textarea { width:100%; min-height:90px; resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.85rem; }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+  .col { display:flex; flex-direction:column; gap:4px; } .grow { flex:1 1 220px; }
+  button { font:inherit; font-weight:600; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; background:var(--accent); color:#fff; }
+  button:hover { filter:brightness(1.08); }
+  button.secondary { background:#fff; color:var(--ink); border:1px solid var(--border); font-weight:500; }
+  button.tiny { padding:2px 8px; font-size:0.78rem; font-weight:500; background:#fff; color:var(--muted); border:1px solid var(--border); }
+  button.tiny:hover { color:var(--accent); border-color:var(--accent); }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .hint { color:var(--muted); font-size:0.8rem; margin-top:6px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:0.84rem; } 
+  th,td { border:1px solid var(--border); padding:5px 8px; text-align:left; vertical-align:top; }
+  th { background:#f8fafc; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.best td { background:var(--ok-soft); }
+  .msg { border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:8px; }
+  .msg.bad{background:var(--bad-soft);color:var(--bad);} .msg.warn{background:var(--warn-soft);color:var(--warn);} .msg.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill { display:inline-block; font-size:0.75rem; padding:1px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-weight:600; }
+  .aagrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:2px 10px; }
+  .aagrid label { font-size:0.84rem; display:flex; gap:6px; align-items:baseline; font-weight:500; }
+  .aagroup { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); font-weight:700; margin:12px 0 4px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:12px; }
+  .stat { border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+  .stat .k { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  .stat .v { font-size:1.05rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; }
+  footer a { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>degenerate</span></nav>
+  <h1>Degenerate codon designer</h1>
+  <div class="sub">Find the minimal IUPAC degenerate codon that encodes a chosen set of amino acids, decode a degenerate codon, and compute library diversity.</div>
+  <div class="card">
+    <h2><span class="num">1</span>Design a degenerate codon</h2>
+    <p class="note">Choose the amino acids you want encoded at a position. The solver returns the IUPAC degenerate codons that cover them with the fewest off-target residues and the least redundancy.</p>
+    <div id="aaBox"></div>
+    <div class="btn-row">
+      <button id="solveBtn">Find codons</button>
+      <button class="secondary" id="clearAA">Clear</button>
+      <label style="font-size:0.85rem;margin-left:8px"><input type="checkbox" id="avoidStop" checked> Penalize codons that include a stop</label>
+    </div>
+    <div class="btn-row">
+      <span class="hint">Quick picks:</span>
+      <button class="tiny" data-preset="ILMV">hydrophobic (I L M V)</button>
+      <button class="tiny" data-preset="DE">acidic (D E)</button>
+      <button class="tiny" data-preset="KR">basic (K R)</button>
+      <button class="tiny" data-preset="FWY">aromatic (F W Y)</button>
+      <button class="tiny" data-preset="ALL">all 20 (saturation)</button>
+    </div>
+    <div id="solveOut" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span>Decode a degenerate codon</h2>
+    <p class="note">Enter an IUPAC codon (for example NNK, DTT, GAN) to see which amino acids and codons it specifies.</p>
+    <div class="row">
+      <div class="col"><label class="block" for="decIn">Codon</label><input type="text" id="decIn" class="mono" value="NNK" maxlength="3" style="width:120px;text-transform:uppercase"></div>
+    </div>
+    <div id="decOut"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span>Library size</h2>
+    <p class="note">Enter one degenerate codon per randomized position (comma or space separated) to get the theoretical diversity.</p>
+    <div class="row"><div class="col grow"><label class="block" for="libIn">Degenerate codons</label>
+      <input type="text" id="libIn" class="mono" value="NNK, NNK, NNK" style="width:100%;text-transform:uppercase"></div></div>
+    <div id="libOut"></div>
+  </div>
+  <footer>
+    Part of <a href="/">yaronlab.tools</a>. Shared sequence logic (genetic code, codon usage, nearest-neighbor Tm, degenerate codons) is bundled in the page. Check every primer and library design against your own records before ordering.
+  </footer>
+</div>
+<script>
+/* ===== yaronlab.tools shared bio-engineering core ===== */
+"use strict";
+var BIO = (function(){
+  // genetic code (standard)
+  var AAs='FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG';
+  var B1='TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG';
+  var B2='TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG';
+  var B3='TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG';
+  var CODE={};
+  for(var i=0;i<64;i++) CODE[B1[i]+B2[i]+B3[i]]=AAs[i];
+  var CODON_USAGE={"human":{"AAA":["K",0.628,0.3858,31.41],"AAC":["N",1.0,0.5929,21.85],"AAG":["K",1.0,0.6142,50.02],"AAT":["N",0.6866,0.4071,15.0],"ACA":["T",0.5199,0.2045,12.28],"ACC":["T",1.0,0.3934,23.63],"ACG":["T",0.1615,0.0635,3.82],"ACT":["T",0.8606,0.3386,20.33],"AGA":["R",0.7198,0.1767,8.73],"AGC":["S",0.5775,0.1636,10.72],"AGG":["R",0.5905,0.145,7.16],"AGT":["S",0.4451,0.1261,8.26],"ATA":["I",0.1227,0.0663,3.55],"ATC":["I",1.0,0.54,28.96],"ATG":["M",1.0,1.0,23.73],"ATT":["I",0.7292,0.3938,21.12],"CAA":["Q",0.3271,0.2465,9.1],"CAC":["H",1.0,0.5572,9.93],"CAG":["Q",1.0,0.7535,27.81],"CAT":["H",0.7947,0.4428,7.89],"CCA":["P",0.8729,0.301,18.66],"CCC":["P",1.0,0.3449,21.38],"CCG":["P",0.11,0.0379,2.35],"CCT":["P",0.9169,0.3162,19.6],"CGA":["R",0.4655,0.1143,5.65],"CGC":["R",1.0,0.2455,12.13],"CGG":["R",0.5172,0.127,6.27],"CGT":["R",0.7802,0.1915,9.46],"CTA":["L",0.1452,0.0585,4.7],"CTC":["L",0.4565,0.184,14.79],"CTG":["L",1.0,0.4031,32.41],"CTT":["L",0.3839,0.1547,12.44],"GAA":["E",0.7018,0.4124,30.27],"GAC":["D",1.0,0.5,28.64],"GAG":["E",1.0,0.5876,43.12],"GAT":["D",1.0,0.5,28.64],"GCA":["A",0.4859,0.1916,15.26],"GCC":["A",0.9068,0.3576,28.49],"GCG":["A",0.1431,0.0564,4.5],"GCT":["A",1.0,0.3944,31.41],"GGA":["G",0.7297,0.2298,17.35],"GGC":["G",1.0,0.3149,23.78],"GGG":["G",0.5736,0.1806,13.64],"GGT":["G",0.8725,0.2747,20.75],"GTA":["V",0.2482,0.1076,7.37],"GTC":["V",0.5299,0.2296,15.73],"GTG":["V",1.0,0.4333,29.69],"GTT":["V",0.5299,0.2296,15.73],"TAC":["Y",1.0,0.5521,14.11],"TAT":["Y",0.8111,0.4479,11.45],"TCA":["S",0.4254,0.1205,7.89],"TCC":["S",0.938,0.2658,17.41],"TCG":["S",0.1437,0.0407,2.67],"TCT":["S",1.0,0.2833,18.56],"TGC":["C",1.0,0.5475,6.32],"TGG":["W",1.0,1.0,7.63],"TGT":["C",0.8264,0.4525,5.23],"TTA":["L",0.1323,0.0533,4.29],"TTC":["F",1.0,0.5142,17.04],"TTG":["L",0.3629,0.1463,11.76],"TTT":["F",0.9448,0.4858,16.1]},"ecoli":{"AAA":["K",1.0,0.7751,57.5],"AAC":["N",1.0,0.8886,33.33],"AAG":["K",0.2901,0.2249,16.68],"AAT":["N",0.1254,0.1114,4.18],"ACA":["T",0.065,0.0331,1.77],"ACC":["T",1.0,0.5095,27.23],"ACG":["T",0.1342,0.0684,3.65],"ACT":["T",0.7635,0.389,20.79],"AGA":["R",0.0071,0.005,0.3],"AGC":["S",0.5438,0.215,10.28],"AGG":["R",0.0,0.0,0.0],"AGT":["S",0.0717,0.0283,1.36],"ATA":["I",0.0039,0.003,0.19],"ATC":["I",1.0,0.7809,48.31],"ATG":["M",1.0,1.0,25.46],"ATT":["I",0.2767,0.2161,13.37],"CAA":["Q",0.1855,0.1564,5.57],"CAC":["H",1.0,0.7872,13.93],"CAG":["Q",1.0,0.8436,30.05],"CAT":["H",0.2703,0.2128,3.77],"CCA":["P",0.1709,0.1275,4.52],"CCC":["P",0.0128,0.0096,0.34],"CCG":["P",1.0,0.746,26.43],"CCT":["P",0.1567,0.1169,4.14],"CGA":["R",0.008,0.0056,0.34],"CGC":["R",0.4219,0.2927,17.81],"CGG":["R",0.0045,0.0031,0.19],"CGT":["R",1.0,0.6937,42.21],"CTA":["L",0.0035,0.003,0.23],"CTC":["L",0.0701,0.0591,4.52],"CTG":["L",1.0,0.8425,64.47],"CTT":["L",0.0514,0.0433,3.31],"GAA":["E",1.0,0.7878,61.38],"GAC":["D",1.0,0.6289,35.36],"GAG":["E",0.2693,0.2122,16.53],"GAT":["D",0.59,0.3711,20.86],"GCA":["A",0.6763,0.2644,27.23],"GCC":["A",0.2554,0.0998,10.28],"GCG":["A",0.6268,0.245,25.23],"GCT":["A",1.0,0.3909,40.25],"GGA":["G",0.0153,0.0089,0.75],"GGC":["G",0.6799,0.395,33.51],"GGG":["G",0.026,0.0151,1.28],"GGT":["G",1.0,0.581,49.29],"GTA":["V",0.4913,0.2422,21.24],"GTC":["V",0.1707,0.0842,7.38],"GTG":["V",0.3667,0.1808,15.85],"GTT":["V",1.0,0.4929,43.23],"TAC":["Y",1.0,0.7295,16.76],"TAT":["Y",0.3708,0.2705,6.21],"TCA":["S",0.0817,0.0323,1.54],"TCC":["S",0.745,0.2945,14.08],"TCG":["S",0.0876,0.0346,1.66],"TCT":["S",1.0,0.3953,18.9],"TGC":["C",1.0,0.5975,3.58],"TGG":["W",1.0,1.0,5.12],"TGT":["C",0.6737,0.4025,2.41],"TTA":["L",0.0263,0.0221,1.69],"TTC":["F",1.0,0.7831,23.38],"TTG":["L",0.0356,0.03,2.3],"TTT":["F",0.277,0.2169,6.48]}};
+
+  var IUPAC={A:'A',C:'C',G:'G',T:'T',R:'AG',Y:'CT',S:'CG',W:'AT',K:'GT',M:'AC',
+             B:'CGT',D:'AGT',H:'ACT',V:'ACG',N:'ACGT'};
+  // reverse map: sorted bases -> IUPAC letter
+  var BASES2IUPAC={}; for(var k in IUPAC){ BASES2IUPAC[IUPAC[k].split('').sort().join('')]=k; }
+  var IUPAC_CODES=Object.keys(IUPAC);
+
+  function cleanSeq(s){ return (s||'').split(/\r?\n/).filter(function(l){return !l.trim().startsWith('>');}).join('').replace(/[\s\d]/g,'').toUpperCase(); }
+  function revcomp(s){ var m={A:'T',T:'A',G:'C',C:'G',N:'N',R:'Y',Y:'R',S:'S',W:'W',K:'M',M:'K',B:'V',V:'B',D:'H',H:'D',U:'A'};
+    return s.split('').reverse().map(function(c){return m[c]||'N';}).join(''); }
+  function gc(s){ var g=(s.match(/[GCSgcs]/g)||[]).length; return s.length? 100*g/s.length : 0; }
+  function aaOf(c){ return CODE[c]!==undefined?CODE[c]:'X'; }
+  function translate(dna){ var p=''; for(var i=0;i+2<dna.length;i+=3) p+=aaOf(dna.substr(i,3)); return p; }
+  function isDNA(s){ if(!s.length) return false; var n=(s.match(/[ACGTUNRYSWKMBDHV]/g)||[]).length; return n/s.length>0.9; }
+
+  // codon usage helpers
+  function synFor(host, aa){ var t=CODON_USAGE[host], out=[]; for(var c in t) if(t[c][0]===aa) out.push(c);
+    out.sort(function(a,b){return t[b][1]-t[a][1];}); return out; }
+  function bestCodon(host, aa){ var s=synFor(host,aa); return s.length?s[0]:null; }
+
+  // IUPAC degenerate codon -> {aas:[], hasStop, codons:[]}
+  function expandDegenerate(deg){
+    deg=deg.toUpperCase();
+    if(deg.length!==3) return null;
+    var p0=IUPAC[deg[0]], p1=IUPAC[deg[1]], p2=IUPAC[deg[2]];
+    if(!p0||!p1||!p2) return null;
+    var codons=[], aaset={}, hasStop=false;
+    for(var a=0;a<p0.length;a++)for(var b=0;b<p1.length;b++)for(var c=0;c<p2.length;c++){
+      var cod=p0[a]+p1[b]+p2[c]; codons.push(cod);
+      var aa=CODE[cod]; if(aa==='*') hasStop=true; else aaset[aa]=1;
+    }
+    return {aas:Object.keys(aaset).sort(), hasStop:hasStop, codons:codons};
+  }
+  function basesToIUPAC(bases){ var u={}; bases.split('').forEach(function(x){u[x]=1;});
+    return BASES2IUPAC[Object.keys(u).sort().join('')]||null; }
+
+  /* degenerate-codon solver.
+     target = array of amino-acid letters that MUST be encoded.
+     opts.avoidStop (default true): penalise codons that include a stop.
+     Returns ranked list of {codon, aas, hasStop, off (extra aa count), size (#codons),
+       missing (targets not covered)} limited to full-coverage hits, best first. */
+  function solveDegenerate(target, opts){
+    opts=opts||{}; var avoidStop=opts.avoidStop!==false;
+    var want={}; target.forEach(function(a){want[a]=1;});
+    var wantKeys=Object.keys(want);
+    var results=[];
+    for(var i=0;i<IUPAC_CODES.length;i++)for(var j=0;j<IUPAC_CODES.length;j++)for(var k=0;k<IUPAC_CODES.length;k++){
+      var deg=IUPAC_CODES[i]+IUPAC_CODES[j]+IUPAC_CODES[k];
+      var e=expandDegenerate(deg);
+      var covered=wantKeys.every(function(a){return e.aas.indexOf(a)>=0;});
+      if(!covered) continue;
+      var off=e.aas.filter(function(a){return !want[a];}).length;
+      results.push({codon:deg, aas:e.aas, hasStop:e.hasStop, off:off, size:e.codons.length});
+    }
+    results.sort(function(a,b){
+      if(avoidStop && a.hasStop!==b.hasStop) return a.hasStop?1:-1;
+      if(a.off!==b.off) return a.off-b.off;
+      if(a.size!==b.size) return a.size-b.size;      // fewer codons = less redundancy
+      return a.codon.localeCompare(b.codon);
+    });
+    return results;
+  }
+
+  /* nearest-neighbor Tm (SantaLucia 1998 unified), salt-corrected.
+     seq = DNA; opts: {primer_nM (default 500), Na_mM (default 50), Mg_mM (default 0)} */
+  var NN_H={AA:-7.9,AT:-7.2,TA:-7.2,CA:-8.5,GT:-8.4,CT:-7.8,GA:-8.2,CG:-10.6,GC:-9.8,GG:-8.0,
+            TT:-7.9,TG:-8.5,AC:-8.4,AG:-7.8,TC:-8.2,CC:-8.0};
+  var NN_S={AA:-22.2,AT:-20.4,TA:-21.3,CA:-22.7,GT:-22.4,CT:-21.0,GA:-22.2,CG:-27.2,GC:-24.4,GG:-19.9,
+            TT:-22.2,TG:-22.7,AC:-22.4,AG:-21.0,TC:-22.2,CC:-19.9};
+  function tm(seq, opts){
+    // SantaLucia (1998) nearest-neighbor, salt-corrected. Primer-in-excess convention
+    // (matches IDT, NEB, Primer3, Biopython Tm_NN). opts: primer_nM (500), Na_mM (50), Mg_mM (0).
+    opts=opts||{}; seq=seq.toUpperCase().replace(/[^ACGT]/g,'');
+    if(seq.length<2) return null;
+    var primer=(opts.primer_nM||500)*1e-9;
+    var dH=0,dS=0;
+    dH+= (seq[0]==='G'||seq[0]==='C')?0.1:2.3;  dS+= (seq[0]==='G'||seq[0]==='C')?-2.8:4.1;
+    dH+= (seq[seq.length-1]==='G'||seq[seq.length-1]==='C')?0.1:2.3;
+    dS+= (seq[seq.length-1]==='G'||seq[seq.length-1]==='C')?-2.8:4.1;
+    for(var i=0;i<seq.length-1;i++){ var d=seq.substr(i,2); dH+=NN_H[d]; dS+=NN_S[d]; }
+    var naEqM=((opts.Na_mM==null?50:opts.Na_mM) + 120*Math.sqrt(Math.max(opts.Mg_mM||0,0)))/1000;
+    if(naEqM<=0) naEqM=0.05;
+    var R=1.987;
+    if((opts.salt||'santalucia')==='owczarzy'){
+      var tm1=(dH*1000)/(dS + R*Math.log(primer));
+      var fGC=(seq.match(/[GC]/g)||[]).length/seq.length, ln=Math.log(naEqM);
+      var inv=1/tm1 + (4.29*fGC-3.95)*1e-5*ln + 9.40e-6*ln*ln;
+      return 1/inv - 273.15;
+    }
+    dS += 0.368*(seq.length-1)*Math.log(naEqM);
+    var tmK=(dH*1000)/(dS + R*Math.log(primer));
+    return tmK-273.15;
+  }
+
+
+  /* design site-directed mutagenesis primers. The region [i0,i1) of dna is replaced by `ins`
+     (ins='' => deletion; i0==i1 => insertion). style 'quikchange' (overlapping, mutation centred)
+     or 'partial' (back-to-back, NEBaseChanger-style). opts: {style, tm (target, default 60),
+     minFlank (10), maxFlank (45), primer_nM, Na_mM, Mg_mM} */
+  function designSDM(dna, i0, i1, ins, opts){
+    opts=opts||{}; var style=opts.style||'partial';
+    var tmT=opts.tm||60, minF=opts.minFlank||10, maxF=opts.maxFlank||45;
+    var left=dna.slice(0,i0), right=dna.slice(i1);
+    function growTm(frag, fromLeft){ // extend a flank until Tm>=target
+      for(var L=minF; L<=maxF; L++){ var s=fromLeft?frag.slice(0,L):frag.slice(-L);
+        if(s.length<L) return s; if(tm(s,opts)>=tmT) return s; }
+      return fromLeft?frag.slice(0,maxF):frag.slice(-maxF);
+    }
+    if(style==='quikchange'){
+      var fl=minF, fwd=null;
+      for(fl=minF; fl<=maxF; fl++){
+        var lf=left.slice(-fl), rf=right.slice(0,fl);
+        fwd=lf+ins+rf;
+        if(tm(fwd,opts)>=tmT) break;
+      }
+      return {style:'quikchange', fwd:fwd, rev:revcomp(fwd), tmFwd:tm(fwd,opts), tmRev:tm(fwd,opts),
+              lenFwd:fwd.length, lenRev:fwd.length, change:ins};
+    } else {
+      var rAnneal=growTm(right,true), lAnneal=growTm(left,false);
+      var fwd2=ins+rAnneal;                 // mutation at 5' of forward primer
+      var rev2=revcomp(lAnneal);            // reverse primer anneals upstream, back-to-back
+      return {style:'partial', fwd:fwd2, rev:rev2, tmFwd:tm(rAnneal,opts), tmRev:tm(lAnneal,opts),
+              lenFwd:fwd2.length, lenRev:rev2.length, change:ins, annealFwd:rAnneal, annealRev:lAnneal};
+    }
+  }
+  /* library size for a set of degenerate codons (product of codon counts) and protein diversity */
+  function libSize(degCodons){
+    var dna=1, prot=1, anyStop=false;
+    degCodons.forEach(function(d){ var e=expandDegenerate(d); dna*=e.codons.length; prot*=e.aas.length; if(e.hasStop) anyStop=true; });
+    return {dna:dna, protein:prot, hasStop:anyStop};
+  }
+
+  return {CODE:CODE, designSDM:designSDM, libSize:libSize, CODON_USAGE:CODON_USAGE, IUPAC:IUPAC, cleanSeq:cleanSeq, revcomp:revcomp,
+          gc:gc, aaOf:aaOf, translate:translate, isDNA:isDNA, synFor:synFor, bestCodon:bestCodon,
+          expandDegenerate:expandDegenerate, basesToIUPAC:basesToIUPAC, solveDegenerate:solveDegenerate, tm:tm};
+})();
+if(typeof module!=='undefined') module.exports=BIO;
+
+</script>
+<script>
+
+var AAINFO=[
+ ["Nonpolar",[["G","Gly"],["A","Ala"],["V","Val"],["L","Leu"],["I","Ile"],["P","Pro"],["M","Met"]]],
+ ["Aromatic",[["F","Phe"],["W","Trp"],["Y","Tyr"]]],
+ ["Polar",[["S","Ser"],["T","Thr"],["C","Cys"],["N","Asn"],["Q","Gln"]]],
+ ["Acidic",[["D","Asp"],["E","Glu"]]],
+ ["Basic",[["K","Lys"],["R","Arg"],["H","His"]]]
+];
+function byId(i){return document.getElementById(i);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function buildAA(){
+  var h='';
+  AAINFO.forEach(function(g){
+    h+='<div class="aagroup">'+g[0]+'</div><div class="aagrid">';
+    g[1].forEach(function(a){ h+='<label><input type="checkbox" class="aachk" value="'+a[0]+'"> '+a[0]+' <span style="color:var(--muted);font-size:0.78rem">'+a[1]+'</span></label>'; });
+    h+='</div>';
+  });
+  byId('aaBox').innerHTML=h;
+}
+function chosenAA(){ return Array.prototype.map.call(document.querySelectorAll('.aachk:checked'),function(c){return c.value;}); }
+function fmtAAs(arr){ return arr.join(' '); }
+function solve(){
+  var tgt=chosenAA();
+  var out=byId('solveOut');
+  if(tgt.length===0){ out.innerHTML='<div class="msg warn">Select at least one amino acid.</div>'; return; }
+  var res=BIO.solveDegenerate(tgt,{avoidStop:byId('avoidStop').checked});
+  if(!res.length){ out.innerHTML='<div class="msg bad">No single codon can encode that set.</div>'; return; }
+  var top=res.slice(0,8);
+  var h='<table><tr><th>Codon</th><th>Encodes</th><th>Off-target</th><th>Stop</th><th>DNA codons</th><th>Efficiency</th></tr>';
+  top.forEach(function(r,i){
+    var offAA=r.aas.filter(function(a){return tgt.indexOf(a)<0;});
+    var eff=Math.round(100*tgt.length/r.aas.length);
+    h+='<tr'+(i===0?' class="best"':'')+'><td class="mono"><b>'+r.codon+'</b></td>'+
+       '<td class="mono">'+esc(fmtAAs(r.aas))+'</td>'+
+       '<td>'+(offAA.length? '<span style="color:var(--warn)">'+esc(fmtAAs(offAA))+'</span>':'none')+'</td>'+
+       '<td>'+(r.hasStop?'<span style="color:var(--bad)">yes</span>':'no')+'</td>'+
+       '<td class="num">'+r.size+'</td><td class="num">'+eff+'%</td></tr>';
+  });
+  h+='</table><div class="hint">Efficiency = target amino acids divided by all amino acids the codon encodes. The top row is the best trade-off (full coverage, fewest off-target residues, least redundancy).</div>';
+  out.innerHTML=h;
+}
+function decode(){
+  var c=byId('decIn').value.trim().toUpperCase();
+  var e=BIO.expandDegenerate(c);
+  var out=byId('decOut');
+  if(!e){ out.innerHTML='<div class="msg warn">Enter a valid 3-letter IUPAC codon.</div>'; return; }
+  out.innerHTML='<div class="stats">'+
+    '<div class="stat"><div class="k">Amino acids</div><div class="v">'+e.aas.length+'</div></div>'+
+    '<div class="stat"><div class="k">DNA codons</div><div class="v">'+e.codons.length+'</div></div>'+
+    '<div class="stat"><div class="k">Stop codon</div><div class="v">'+(e.hasStop?'yes':'no')+'</div></div></div>'+
+    '<div class="hint">Encodes: <span class="mono">'+esc(e.aas.join(' '))+'</span>'+(e.hasStop?' <span style="color:var(--bad)">+ stop</span>':'')+'</div>'+
+    '<div class="hint">Codons: <span class="mono">'+esc(e.codons.join(' '))+'</span></div>';
+}
+function libsize(){
+  var parts=byId('libIn').value.toUpperCase().split(/[,\s]+/).filter(Boolean);
+  var out=byId('libOut');
+  if(!parts.length){ out.innerHTML=''; return; }
+  for(var i=0;i<parts.length;i++){ if(!BIO.expandDegenerate(parts[i])){ out.innerHTML='<div class="msg warn">"'+esc(parts[i])+'" is not a valid IUPAC codon.</div>'; return; } }
+  var ls=BIO.libSize(parts);
+  out.innerHTML='<div class="stats">'+
+    '<div class="stat"><div class="k">Positions</div><div class="v">'+parts.length+'</div></div>'+
+    '<div class="stat"><div class="k">DNA sequences</div><div class="v">'+ls.dna.toLocaleString()+'</div></div>'+
+    '<div class="stat"><div class="k">Protein variants</div><div class="v">'+ls.protein.toLocaleString()+'</div></div></div>'+
+    '<div class="hint">DNA diversity is the number of distinct oligonucleotides; protein diversity counts distinct amino-acid combinations'+(ls.hasStop?'. At least one position can introduce a stop codon, which truncates those members.':'.')+' To sample the protein diversity with 95% coverage, screen about '+Math.round(3*ls.protein).toLocaleString()+' clones.</div>';
+}
+function init(){
+  buildAA();
+  byId('solveBtn').addEventListener('click',solve);
+  byId('clearAA').addEventListener('click',function(){document.querySelectorAll('.aachk').forEach(function(c){c.checked=false;}); byId('solveOut').innerHTML='';});
+  byId('decIn').addEventListener('input',decode);
+  byId('libIn').addEventListener('input',libsize);
+  document.querySelectorAll('[data-preset]').forEach(function(b){ b.addEventListener('click',function(){
+    var p=b.dataset.preset; var set=(p==='ALL')?'ACDEFGHIKLMNPQRSTVWY':p;
+    document.querySelectorAll('.aachk').forEach(function(c){ c.checked=set.indexOf(c.value)>=0; });
+    solve();
+  });});
+  decode(); libsize();
+}
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
