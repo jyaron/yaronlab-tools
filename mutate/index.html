@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site-directed mutagenesis primer designer | yaronlab.tools</title>
+<meta name="description" content="Design mutagenesis primers for substitutions, insertions, and deletions, with nearest-neighbor Tm, host-optimized codons, and a ready-to-paste order table and methods text.">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1a202c; --muted:#64748b; --accent:#2563eb;
+          --accent-soft:#dbeafe; --accent-deep:#1e3a8a; --border:#e2e8f0; --radius:10px;
+          --ok:#15803d; --ok-soft:#dcfce7; --warn:#b45309; --warn-soft:#fef3c7; --bad:#b91c1c; --bad-soft:#fee2e2; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 80px; }
+  .site-nav { font-size:0.85rem; margin-bottom:18px; }
+  .site-nav a { color:var(--muted); text-decoration:none; } .site-nav a:hover { color:var(--accent); }
+  .site-nav .sep { color:var(--border); margin:0 6px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:0.92rem; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; }
+  .card h2 { font-size:1rem; margin:0 0 4px; } .card h2 .num { color:var(--accent); margin-right:6px; }
+  .card .note { color:var(--muted); font-size:0.82rem; margin:0 0 14px; }
+  label.block { font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px; }
+  textarea, input[type=text], input[type=number], select { font:inherit; border:1px solid var(--border);
+     border-radius:8px; padding:8px 10px; background:#fff; color:inherit; }
+  textarea { width:100%; min-height:90px; resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.85rem; }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+  .col { display:flex; flex-direction:column; gap:4px; } .grow { flex:1 1 220px; }
+  button { font:inherit; font-weight:600; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; background:var(--accent); color:#fff; }
+  button:hover { filter:brightness(1.08); }
+  button.secondary { background:#fff; color:var(--ink); border:1px solid var(--border); font-weight:500; }
+  button.tiny { padding:2px 8px; font-size:0.78rem; font-weight:500; background:#fff; color:var(--muted); border:1px solid var(--border); }
+  button.tiny:hover { color:var(--accent); border-color:var(--accent); }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .hint { color:var(--muted); font-size:0.8rem; margin-top:6px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:0.84rem; } 
+  th,td { border:1px solid var(--border); padding:5px 8px; text-align:left; vertical-align:top; }
+  th { background:#f8fafc; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.best td { background:var(--ok-soft); }
+  .msg { border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:8px; }
+  .msg.bad{background:var(--bad-soft);color:var(--bad);} .msg.warn{background:var(--warn-soft);color:var(--warn);} .msg.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill { display:inline-block; font-size:0.75rem; padding:1px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-weight:600; }
+  .aagrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:2px 10px; }
+  .aagrid label { font-size:0.84rem; display:flex; gap:6px; align-items:baseline; font-weight:500; }
+  .aagroup { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); font-weight:700; margin:12px 0 4px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:12px; }
+  .stat { border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+  .stat .k { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  .stat .v { font-size:1.05rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; }
+  footer a { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>mutate</span></nav>
+  <h1>Site-directed mutagenesis primer designer</h1>
+  <div class="sub">Design mutagenesis primers for substitutions, insertions, and deletions, with nearest-neighbor Tm, host-optimized codons, and a ready-to-paste order table and methods text.</div>
+  <div class="card">
+    <h2><span class="num">1</span>Template coding sequence</h2>
+    <p class="note">Paste the DNA coding sequence to mutagenize (ATG... in frame). FASTA headers and whitespace are ignored.</p>
+    <div class="row"><div class="col grow"><label class="block" for="name">Name</label><input type="text" id="name" value="construct" style="width:100%"></div></div>
+    <textarea id="cds" placeholder="ATGGCTAGC..."></textarea>
+    <div class="hint" id="cdsInfo">No sequence yet.</div>
+    <div class="btn-row"><button class="secondary" id="demo">Load example</button></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span>Mutations</h2>
+    <p class="note">Add one or more changes. Substitution uses protein notation (for example S65T): wild-type residue, position, new residue. Insertion adds residues after a position; deletion removes a residue range.</p>
+    <div class="row">
+      <div class="col"><label class="block" for="mtype">Type</label>
+        <select id="mtype"><option value="sub">Substitution</option><option value="ins">Insertion</option><option value="del">Deletion</option></select></div>
+      <div class="col" id="subField"><label class="block" for="mstr">Change</label><input type="text" id="mstr" class="mono" placeholder="S65T" style="width:120px"></div>
+      <div class="col" id="insField" style="display:none"><label class="block" for="insAfter">After residue</label><input type="number" id="insAfter" style="width:110px"></div>
+      <div class="col" id="insSeqField" style="display:none"><label class="block" for="insSeq">Insert residues</label><input type="text" id="insSeq" class="mono" placeholder="GSG" style="width:140px"></div>
+      <div class="col" id="delField" style="display:none"><label class="block" for="delRange">Residues (from-to)</label><input type="text" id="delRange" class="mono" placeholder="65-67" style="width:120px"></div>
+      <div class="col"><label class="block">&nbsp;</label><button class="secondary" id="addMut">Add</button></div>
+    </div>
+    <div id="mutList"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">3</span>Primer options</h2>
+    <div class="row">
+      <div class="col grow"><label class="block" for="style">Primer style</label>
+        <select id="style"><option value="partial">Back-to-back (NEBaseChanger style)</option><option value="quikchange">Overlapping (QuikChange style)</option></select></div>
+      <div class="col"><label class="block" for="tmT">Target Tm (C)</label><input type="number" id="tmT" value="60" style="width:90px"></div>
+      <div class="col"><label class="block" for="host">Codon usage</label>
+        <select id="host"><option value="human">Human</option><option value="ecoli">E. coli</option></select></div>
+      <div class="col"><label class="block" for="na">[Na+] mM</label><input type="number" id="na" value="50" style="width:80px"></div>
+      <div class="col"><label class="block" for="oligo">[Oligo] nM</label><input type="number" id="oligo" value="500" style="width:90px"></div>
+      <div class="col"><label class="block" for="mg">[Mg++] mM</label><input type="number" id="mg" value="0" step="0.5" style="width:80px"></div>
+      <div class="col"><label class="block" for="saltm">Salt model</label><select id="saltm"><option value="santalucia">SantaLucia 1998</option><option value="owczarzy">Owczarzy 2004 (IDT)</option></select></div>
+    </div>
+    <div class="hint">For substitutions the new codon is chosen as the most frequent synonymous codon in the selected host. Overlapping primers raise the default Tm target automatically. Melting temperatures use the SantaLucia 1998 nearest-neighbor model with the primer in excess (the convention used by IDT, NEB, and Primer3); set the oligo concentration to match your Tm tool (IDT defaults to 250 nM, NEB protocols to 500 nM).</div>
+  </div>
+
+  <div class="btn-row" style="margin-bottom:22px"><button id="design">Design primers</button></div>
+  <div class="card" id="out" style="display:none"></div>
+  <footer>
+    Part of <a href="/">yaronlab.tools</a>. Shared sequence logic (genetic code, codon usage, nearest-neighbor Tm, degenerate codons) is bundled in the page. Check every primer and library design against your own records before ordering.
+  </footer>
+</div>
+<script>
+/* ===== yaronlab.tools shared bio-engineering core ===== */
+"use strict";
+var BIO = (function(){
+  // genetic code (standard)
+  var AAs='FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG';
+  var B1='TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG';
+  var B2='TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG';
+  var B3='TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG';
+  var CODE={};
+  for(var i=0;i<64;i++) CODE[B1[i]+B2[i]+B3[i]]=AAs[i];
+  var CODON_USAGE={"human":{"AAA":["K",0.628,0.3858,31.41],"AAC":["N",1.0,0.5929,21.85],"AAG":["K",1.0,0.6142,50.02],"AAT":["N",0.6866,0.4071,15.0],"ACA":["T",0.5199,0.2045,12.28],"ACC":["T",1.0,0.3934,23.63],"ACG":["T",0.1615,0.0635,3.82],"ACT":["T",0.8606,0.3386,20.33],"AGA":["R",0.7198,0.1767,8.73],"AGC":["S",0.5775,0.1636,10.72],"AGG":["R",0.5905,0.145,7.16],"AGT":["S",0.4451,0.1261,8.26],"ATA":["I",0.1227,0.0663,3.55],"ATC":["I",1.0,0.54,28.96],"ATG":["M",1.0,1.0,23.73],"ATT":["I",0.7292,0.3938,21.12],"CAA":["Q",0.3271,0.2465,9.1],"CAC":["H",1.0,0.5572,9.93],"CAG":["Q",1.0,0.7535,27.81],"CAT":["H",0.7947,0.4428,7.89],"CCA":["P",0.8729,0.301,18.66],"CCC":["P",1.0,0.3449,21.38],"CCG":["P",0.11,0.0379,2.35],"CCT":["P",0.9169,0.3162,19.6],"CGA":["R",0.4655,0.1143,5.65],"CGC":["R",1.0,0.2455,12.13],"CGG":["R",0.5172,0.127,6.27],"CGT":["R",0.7802,0.1915,9.46],"CTA":["L",0.1452,0.0585,4.7],"CTC":["L",0.4565,0.184,14.79],"CTG":["L",1.0,0.4031,32.41],"CTT":["L",0.3839,0.1547,12.44],"GAA":["E",0.7018,0.4124,30.27],"GAC":["D",1.0,0.5,28.64],"GAG":["E",1.0,0.5876,43.12],"GAT":["D",1.0,0.5,28.64],"GCA":["A",0.4859,0.1916,15.26],"GCC":["A",0.9068,0.3576,28.49],"GCG":["A",0.1431,0.0564,4.5],"GCT":["A",1.0,0.3944,31.41],"GGA":["G",0.7297,0.2298,17.35],"GGC":["G",1.0,0.3149,23.78],"GGG":["G",0.5736,0.1806,13.64],"GGT":["G",0.8725,0.2747,20.75],"GTA":["V",0.2482,0.1076,7.37],"GTC":["V",0.5299,0.2296,15.73],"GTG":["V",1.0,0.4333,29.69],"GTT":["V",0.5299,0.2296,15.73],"TAC":["Y",1.0,0.5521,14.11],"TAT":["Y",0.8111,0.4479,11.45],"TCA":["S",0.4254,0.1205,7.89],"TCC":["S",0.938,0.2658,17.41],"TCG":["S",0.1437,0.0407,2.67],"TCT":["S",1.0,0.2833,18.56],"TGC":["C",1.0,0.5475,6.32],"TGG":["W",1.0,1.0,7.63],"TGT":["C",0.8264,0.4525,5.23],"TTA":["L",0.1323,0.0533,4.29],"TTC":["F",1.0,0.5142,17.04],"TTG":["L",0.3629,0.1463,11.76],"TTT":["F",0.9448,0.4858,16.1]},"ecoli":{"AAA":["K",1.0,0.7751,57.5],"AAC":["N",1.0,0.8886,33.33],"AAG":["K",0.2901,0.2249,16.68],"AAT":["N",0.1254,0.1114,4.18],"ACA":["T",0.065,0.0331,1.77],"ACC":["T",1.0,0.5095,27.23],"ACG":["T",0.1342,0.0684,3.65],"ACT":["T",0.7635,0.389,20.79],"AGA":["R",0.0071,0.005,0.3],"AGC":["S",0.5438,0.215,10.28],"AGG":["R",0.0,0.0,0.0],"AGT":["S",0.0717,0.0283,1.36],"ATA":["I",0.0039,0.003,0.19],"ATC":["I",1.0,0.7809,48.31],"ATG":["M",1.0,1.0,25.46],"ATT":["I",0.2767,0.2161,13.37],"CAA":["Q",0.1855,0.1564,5.57],"CAC":["H",1.0,0.7872,13.93],"CAG":["Q",1.0,0.8436,30.05],"CAT":["H",0.2703,0.2128,3.77],"CCA":["P",0.1709,0.1275,4.52],"CCC":["P",0.0128,0.0096,0.34],"CCG":["P",1.0,0.746,26.43],"CCT":["P",0.1567,0.1169,4.14],"CGA":["R",0.008,0.0056,0.34],"CGC":["R",0.4219,0.2927,17.81],"CGG":["R",0.0045,0.0031,0.19],"CGT":["R",1.0,0.6937,42.21],"CTA":["L",0.0035,0.003,0.23],"CTC":["L",0.0701,0.0591,4.52],"CTG":["L",1.0,0.8425,64.47],"CTT":["L",0.0514,0.0433,3.31],"GAA":["E",1.0,0.7878,61.38],"GAC":["D",1.0,0.6289,35.36],"GAG":["E",0.2693,0.2122,16.53],"GAT":["D",0.59,0.3711,20.86],"GCA":["A",0.6763,0.2644,27.23],"GCC":["A",0.2554,0.0998,10.28],"GCG":["A",0.6268,0.245,25.23],"GCT":["A",1.0,0.3909,40.25],"GGA":["G",0.0153,0.0089,0.75],"GGC":["G",0.6799,0.395,33.51],"GGG":["G",0.026,0.0151,1.28],"GGT":["G",1.0,0.581,49.29],"GTA":["V",0.4913,0.2422,21.24],"GTC":["V",0.1707,0.0842,7.38],"GTG":["V",0.3667,0.1808,15.85],"GTT":["V",1.0,0.4929,43.23],"TAC":["Y",1.0,0.7295,16.76],"TAT":["Y",0.3708,0.2705,6.21],"TCA":["S",0.0817,0.0323,1.54],"TCC":["S",0.745,0.2945,14.08],"TCG":["S",0.0876,0.0346,1.66],"TCT":["S",1.0,0.3953,18.9],"TGC":["C",1.0,0.5975,3.58],"TGG":["W",1.0,1.0,5.12],"TGT":["C",0.6737,0.4025,2.41],"TTA":["L",0.0263,0.0221,1.69],"TTC":["F",1.0,0.7831,23.38],"TTG":["L",0.0356,0.03,2.3],"TTT":["F",0.277,0.2169,6.48]}};
+
+  var IUPAC={A:'A',C:'C',G:'G',T:'T',R:'AG',Y:'CT',S:'CG',W:'AT',K:'GT',M:'AC',
+             B:'CGT',D:'AGT',H:'ACT',V:'ACG',N:'ACGT'};
+  // reverse map: sorted bases -> IUPAC letter
+  var BASES2IUPAC={}; for(var k in IUPAC){ BASES2IUPAC[IUPAC[k].split('').sort().join('')]=k; }
+  var IUPAC_CODES=Object.keys(IUPAC);
+
+  function cleanSeq(s){ return (s||'').split(/\r?\n/).filter(function(l){return !l.trim().startsWith('>');}).join('').replace(/[\s\d]/g,'').toUpperCase(); }
+  function revcomp(s){ var m={A:'T',T:'A',G:'C',C:'G',N:'N',R:'Y',Y:'R',S:'S',W:'W',K:'M',M:'K',B:'V',V:'B',D:'H',H:'D',U:'A'};
+    return s.split('').reverse().map(function(c){return m[c]||'N';}).join(''); }
+  function gc(s){ var g=(s.match(/[GCSgcs]/g)||[]).length; return s.length? 100*g/s.length : 0; }
+  function aaOf(c){ return CODE[c]!==undefined?CODE[c]:'X'; }
+  function translate(dna){ var p=''; for(var i=0;i+2<dna.length;i+=3) p+=aaOf(dna.substr(i,3)); return p; }
+  function isDNA(s){ if(!s.length) return false; var n=(s.match(/[ACGTUNRYSWKMBDHV]/g)||[]).length; return n/s.length>0.9; }
+
+  // codon usage helpers
+  function synFor(host, aa){ var t=CODON_USAGE[host], out=[]; for(var c in t) if(t[c][0]===aa) out.push(c);
+    out.sort(function(a,b){return t[b][1]-t[a][1];}); return out; }
+  function bestCodon(host, aa){ var s=synFor(host,aa); return s.length?s[0]:null; }
+
+  // IUPAC degenerate codon -> {aas:[], hasStop, codons:[]}
+  function expandDegenerate(deg){
+    deg=deg.toUpperCase();
+    if(deg.length!==3) return null;
+    var p0=IUPAC[deg[0]], p1=IUPAC[deg[1]], p2=IUPAC[deg[2]];
+    if(!p0||!p1||!p2) return null;
+    var codons=[], aaset={}, hasStop=false;
+    for(var a=0;a<p0.length;a++)for(var b=0;b<p1.length;b++)for(var c=0;c<p2.length;c++){
+      var cod=p0[a]+p1[b]+p2[c]; codons.push(cod);
+      var aa=CODE[cod]; if(aa==='*') hasStop=true; else aaset[aa]=1;
+    }
+    return {aas:Object.keys(aaset).sort(), hasStop:hasStop, codons:codons};
+  }
+  function basesToIUPAC(bases){ var u={}; bases.split('').forEach(function(x){u[x]=1;});
+    return BASES2IUPAC[Object.keys(u).sort().join('')]||null; }
+
+  /* degenerate-codon solver.
+     target = array of amino-acid letters that MUST be encoded.
+     opts.avoidStop (default true): penalise codons that include a stop.
+     Returns ranked list of {codon, aas, hasStop, off (extra aa count), size (#codons),
+       missing (targets not covered)} limited to full-coverage hits, best first. */
+  function solveDegenerate(target, opts){
+    opts=opts||{}; var avoidStop=opts.avoidStop!==false;
+    var want={}; target.forEach(function(a){want[a]=1;});
+    var wantKeys=Object.keys(want);
+    var results=[];
+    for(var i=0;i<IUPAC_CODES.length;i++)for(var j=0;j<IUPAC_CODES.length;j++)for(var k=0;k<IUPAC_CODES.length;k++){
+      var deg=IUPAC_CODES[i]+IUPAC_CODES[j]+IUPAC_CODES[k];
+      var e=expandDegenerate(deg);
+      var covered=wantKeys.every(function(a){return e.aas.indexOf(a)>=0;});
+      if(!covered) continue;
+      var off=e.aas.filter(function(a){return !want[a];}).length;
+      results.push({codon:deg, aas:e.aas, hasStop:e.hasStop, off:off, size:e.codons.length});
+    }
+    results.sort(function(a,b){
+      if(avoidStop && a.hasStop!==b.hasStop) return a.hasStop?1:-1;
+      if(a.off!==b.off) return a.off-b.off;
+      if(a.size!==b.size) return a.size-b.size;      // fewer codons = less redundancy
+      return a.codon.localeCompare(b.codon);
+    });
+    return results;
+  }
+
+  /* nearest-neighbor Tm (SantaLucia 1998 unified), salt-corrected.
+     seq = DNA; opts: {primer_nM (default 500), Na_mM (default 50), Mg_mM (default 0)} */
+  var NN_H={AA:-7.9,AT:-7.2,TA:-7.2,CA:-8.5,GT:-8.4,CT:-7.8,GA:-8.2,CG:-10.6,GC:-9.8,GG:-8.0,
+            TT:-7.9,TG:-8.5,AC:-8.4,AG:-7.8,TC:-8.2,CC:-8.0};
+  var NN_S={AA:-22.2,AT:-20.4,TA:-21.3,CA:-22.7,GT:-22.4,CT:-21.0,GA:-22.2,CG:-27.2,GC:-24.4,GG:-19.9,
+            TT:-22.2,TG:-22.7,AC:-22.4,AG:-21.0,TC:-22.2,CC:-19.9};
+  function tm(seq, opts){
+    // SantaLucia (1998) nearest-neighbor, salt-corrected. Primer-in-excess convention
+    // (matches IDT, NEB, Primer3, Biopython Tm_NN). opts: primer_nM (500), Na_mM (50), Mg_mM (0).
+    opts=opts||{}; seq=seq.toUpperCase().replace(/[^ACGT]/g,'');
+    if(seq.length<2) return null;
+    var primer=(opts.primer_nM||500)*1e-9;
+    var dH=0,dS=0;
+    dH+= (seq[0]==='G'||seq[0]==='C')?0.1:2.3;  dS+= (seq[0]==='G'||seq[0]==='C')?-2.8:4.1;
+    dH+= (seq[seq.length-1]==='G'||seq[seq.length-1]==='C')?0.1:2.3;
+    dS+= (seq[seq.length-1]==='G'||seq[seq.length-1]==='C')?-2.8:4.1;
+    for(var i=0;i<seq.length-1;i++){ var d=seq.substr(i,2); dH+=NN_H[d]; dS+=NN_S[d]; }
+    var naEqM=((opts.Na_mM==null?50:opts.Na_mM) + 120*Math.sqrt(Math.max(opts.Mg_mM||0,0)))/1000;
+    if(naEqM<=0) naEqM=0.05;
+    var R=1.987;
+    if((opts.salt||'santalucia')==='owczarzy'){
+      var tm1=(dH*1000)/(dS + R*Math.log(primer));
+      var fGC=(seq.match(/[GC]/g)||[]).length/seq.length, ln=Math.log(naEqM);
+      var inv=1/tm1 + (4.29*fGC-3.95)*1e-5*ln + 9.40e-6*ln*ln;
+      return 1/inv - 273.15;
+    }
+    dS += 0.368*(seq.length-1)*Math.log(naEqM);
+    var tmK=(dH*1000)/(dS + R*Math.log(primer));
+    return tmK-273.15;
+  }
+
+
+  /* design site-directed mutagenesis primers. The region [i0,i1) of dna is replaced by `ins`
+     (ins='' => deletion; i0==i1 => insertion). style 'quikchange' (overlapping, mutation centred)
+     or 'partial' (back-to-back, NEBaseChanger-style). opts: {style, tm (target, default 60),
+     minFlank (10), maxFlank (45), primer_nM, Na_mM, Mg_mM} */
+  function designSDM(dna, i0, i1, ins, opts){
+    opts=opts||{}; var style=opts.style||'partial';
+    var tmT=opts.tm||60, minF=opts.minFlank||10, maxF=opts.maxFlank||45;
+    var left=dna.slice(0,i0), right=dna.slice(i1);
+    function growTm(frag, fromLeft){ // extend a flank until Tm>=target
+      for(var L=minF; L<=maxF; L++){ var s=fromLeft?frag.slice(0,L):frag.slice(-L);
+        if(s.length<L) return s; if(tm(s,opts)>=tmT) return s; }
+      return fromLeft?frag.slice(0,maxF):frag.slice(-maxF);
+    }
+    if(style==='quikchange'){
+      var fl=minF, fwd=null;
+      for(fl=minF; fl<=maxF; fl++){
+        var lf=left.slice(-fl), rf=right.slice(0,fl);
+        fwd=lf+ins+rf;
+        if(tm(fwd,opts)>=tmT) break;
+      }
+      return {style:'quikchange', fwd:fwd, rev:revcomp(fwd), tmFwd:tm(fwd,opts), tmRev:tm(fwd,opts),
+              lenFwd:fwd.length, lenRev:fwd.length, change:ins};
+    } else {
+      var rAnneal=growTm(right,true), lAnneal=growTm(left,false);
+      var fwd2=ins+rAnneal;                 // mutation at 5' of forward primer
+      var rev2=revcomp(lAnneal);            // reverse primer anneals upstream, back-to-back
+      return {style:'partial', fwd:fwd2, rev:rev2, tmFwd:tm(rAnneal,opts), tmRev:tm(lAnneal,opts),
+              lenFwd:fwd2.length, lenRev:rev2.length, change:ins, annealFwd:rAnneal, annealRev:lAnneal};
+    }
+  }
+  /* library size for a set of degenerate codons (product of codon counts) and protein diversity */
+  function libSize(degCodons){
+    var dna=1, prot=1, anyStop=false;
+    degCodons.forEach(function(d){ var e=expandDegenerate(d); dna*=e.codons.length; prot*=e.aas.length; if(e.hasStop) anyStop=true; });
+    return {dna:dna, protein:prot, hasStop:anyStop};
+  }
+
+  return {CODE:CODE, designSDM:designSDM, libSize:libSize, CODON_USAGE:CODON_USAGE, IUPAC:IUPAC, cleanSeq:cleanSeq, revcomp:revcomp,
+          gc:gc, aaOf:aaOf, translate:translate, isDNA:isDNA, synFor:synFor, bestCodon:bestCodon,
+          expandDegenerate:expandDegenerate, basesToIUPAC:basesToIUPAC, solveDegenerate:solveDegenerate, tm:tm};
+})();
+if(typeof module!=='undefined') module.exports=BIO;
+
+</script>
+<script>
+
+function byId(i){return document.getElementById(i);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var MUTS=[];
+var AA1='ACDEFGHIKLMNPQRSTVWY';
+var DEMO='ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAGTAA';
+function getCDS(){ return BIO.cleanSeq(byId('cds').value).replace(/U/g,'T'); }
+function cdsProtein(){ var s=getCDS(); if(s.length<3||s.length%3) return null; var p=BIO.translate(s); return p.replace(/\*$/,''); }
+function refreshCDS(){
+  var s=getCDS(), info=byId('cdsInfo');
+  if(!s){ info.textContent='No sequence yet.'; return; }
+  if(s.length%3){ info.innerHTML='<span style="color:var(--warn)">'+s.length+' nt, not a multiple of 3.</span>'; return; }
+  var p=BIO.translate(s).replace(/\*$/,'');
+  if(p.indexOf('*')>=0){ info.innerHTML='<span style="color:var(--warn)">Internal stop codon in this frame.</span>'; return; }
+  info.textContent=(s.length/3)+' codons ('+s.length+' nt), protein '+p.length+' aa.';
+}
+function parseSub(str){ var m=/^([A-Za-z])(\d+)([A-Za-z\*])$/.exec(str.trim()); if(!m) return null;
+  return {wt:m[1].toUpperCase(), pos:parseInt(m[2],10), mut:m[3].toUpperCase()}; }
+function addMut(){
+  var t=byId('mtype').value, prot=cdsProtein(), err='';
+  if(!prot){ alert('Paste a valid in-frame coding sequence first.'); return; }
+  var m=null;
+  if(t==='sub'){
+    var p=parseSub(byId('mstr').value); if(!p){ alert('Use notation like S65T.'); return; }
+    if(p.pos<1||p.pos>prot.length){ alert('Position out of range (1-'+prot.length+').'); return; }
+    if(prot[p.pos-1]!==p.wt){ alert('Residue '+p.pos+' is '+prot[p.pos-1]+', not '+p.wt+'.'); return; }
+    if(AA1.indexOf(p.mut)<0){ alert('Unknown target residue '+p.mut+'.'); return; }
+    m={type:'sub', label:p.wt+p.pos+p.mut, pos:p.pos, wt:p.wt, mut:p.mut};
+  } else if(t==='ins'){
+    var after=parseInt(byId('insAfter').value,10); var seq=byId('insSeq').value.trim().toUpperCase();
+    if(isNaN(after)||after<0||after>prot.length){ alert('Insertion position out of range.'); return; }
+    if(!seq||/[^ACDEFGHIKLMNPQRSTVWY]/.test(seq)){ alert('Enter residues to insert (one-letter).'); return; }
+    m={type:'ins', label:'ins '+seq+' after '+after, after:after, seq:seq};
+  } else {
+    var r=/^(\d+)\s*-\s*(\d+)$/.exec(byId('delRange').value.trim());
+    if(!r){ alert('Use a range like 65-67.'); return; }
+    var a=parseInt(r[1],10), b=parseInt(r[2],10);
+    if(a<1||b>prot.length||a>b){ alert('Deletion range out of bounds.'); return; }
+    m={type:'del', label:'del '+a+'-'+b, from:a, to:b};
+  }
+  MUTS.push(m); renderMuts();
+}
+function renderMuts(){
+  var box=byId('mutList');
+  if(!MUTS.length){ box.innerHTML='<div class="hint">No mutations added yet.</div>'; return; }
+  var h='';
+  MUTS.forEach(function(m,i){ h+='<div class="msg ok" style="display:flex;align-items:center;gap:10px"><span class="mono">'+esc(m.label)+'</span><button class="tiny" data-del="'+i+'" style="margin-left:auto">remove</button></div>'; });
+  box.innerHTML=h;
+}
+function design(){
+  var cds=getCDS(), prot=cdsProtein(), out=byId('out'); out.style.display='';
+  if(!prot){ out.innerHTML='<div class="msg bad">Paste a valid in-frame coding sequence.</div>'; return; }
+  if(!MUTS.length){ out.innerHTML='<div class="msg warn">Add at least one mutation.</div>'; return; }
+  var host=byId('host').value, style=byId('style').value;
+  var tmT=parseFloat(byId('tmT').value)||60, na=parseFloat(byId('na').value)||50;
+  var oligo=parseFloat(byId('oligo').value)||500, mg=parseFloat(byId('mg').value)||0, saltm=byId('saltm').value;
+  var name=byId('name').value.trim()||'construct';
+  var rows='', methodsMut=[];
+  MUTS.forEach(function(m,idx){
+    var i0,i1,ins,desc,changeDesc;
+    if(m.type==='sub'){ i0=(m.pos-1)*3; i1=i0+3; ins=BIO.bestCodon(host,m.mut); desc=m.label; changeDesc=cds.substr(i0,3)+' > '+ins; }
+    else if(m.type==='ins'){ i0=m.after*3; i1=i0; ins=m.seq.split('').map(function(a){return BIO.bestCodon(host,a);}).join(''); desc=m.label; changeDesc='insert '+ins; }
+    else { i0=(m.from-1)*3; i1=m.to*3; ins=''; desc=m.label; changeDesc='remove '+(i1-i0)+' nt'; }
+    var pr=BIO.designSDM(cds,i0,i1,ins,{style:style,tm:tmT,Na_mM:na,primer_nM:oligo,Mg_mM:mg,salt:saltm});
+    var fwdName=name+'_'+desc.replace(/[^A-Za-z0-9]/g,'')+'_F';
+    var revName=name+'_'+desc.replace(/[^A-Za-z0-9]/g,'')+'_R';
+    rows+='<tr><td rowspan="2"><b>'+esc(desc)+'</b><div class="hint" style="margin:2px 0 0">'+esc(changeDesc)+'</div></td>'+
+      '<td class="mono">'+esc(fwdName)+'</td><td class="mono" style="word-break:break-all">'+esc(pr.fwd)+'</td>'+
+      '<td class="num">'+pr.fwd.length+'</td><td class="num">'+BIO.gc(pr.fwd).toFixed(0)+'%</td><td class="num">'+pr.tmFwd.toFixed(1)+'</td></tr>'+
+      '<tr><td class="mono">'+esc(revName)+'</td><td class="mono" style="word-break:break-all">'+esc(pr.rev)+'</td>'+
+      '<td class="num">'+pr.rev.length+'</td><td class="num">'+BIO.gc(pr.rev).toFixed(0)+'%</td><td class="num">'+pr.tmRev.toFixed(1)+'</td></tr>';
+    methodsMut.push(desc);
+  });
+  var styleName=style==='quikchange'?'overlapping (QuikChange-style) primers':'back-to-back (NEBaseChanger-style) primers';
+  var methods='The '+esc(methodsMut.join(', '))+' '+(methodsMut.length>1?'mutations were':'mutation was')+
+    ' introduced by PCR-based site-directed mutagenesis using '+styleName+' designed at a target melting temperature of '+tmT+
+    ' C (SantaLucia 1998 nearest-neighbor; '+oligo+' nM primer, '+na+' mM Na+'+(mg>0?', '+mg+' mM Mg2+':'')+', '+(saltm==='owczarzy'?'Owczarzy 2004':'SantaLucia 1998')+' salt correction). Substituted codons were chosen as the most frequent synonymous codon for '+(host==='ecoli'?'Escherichia coli':'human')+
+    '. Products were treated with DpnI to remove template, transformed, and confirmed by sequencing.';
+  out.innerHTML='<table><tr><th>Mutation</th><th>Primer</th><th>Sequence (5\u2032 to 3\u2032)</th><th>nt</th><th>GC</th><th>Tm</th></tr>'+rows+'</table>'+
+    '<div class="btn-row"><button class="secondary" id="cpAll">Copy all primers</button><button class="secondary" id="cpMethods">Copy methods text</button></div>'+
+    '<label class="block" style="margin-top:12px">Methods text</label><textarea class="mono" readonly id="methodsBox" style="min-height:90px">'+esc(methods)+'</textarea>';
+  var allp=[]; MUTS.forEach(function(m,idx){});
+  byId('cpAll').addEventListener('click',function(){ var t=[]; document.querySelectorAll('#out td.mono').forEach(function(){});
+    // gather primer rows
+    var lines=[]; var trs=document.querySelectorAll('#out table tr'); 
+    for(var i=1;i<trs.length;i++){ var tds=trs[i].querySelectorAll('td'); var nameC=tds[tds.length-5], seqC=tds[tds.length-4]; if(nameC&&seqC) lines.push(nameC.textContent+'\t'+seqC.textContent); }
+    if(navigator.clipboard) navigator.clipboard.writeText(lines.join('\n')); this.textContent='Copied'; var b=this; setTimeout(function(){b.textContent='Copy all primers';},1200);
+  });
+  byId('cpMethods').addEventListener('click',function(){ if(navigator.clipboard) navigator.clipboard.writeText(byId('methodsBox').value); this.textContent='Copied'; var b=this; setTimeout(function(){b.textContent='Copy methods text';},1200); });
+}
+function init(){
+  renderMuts(); refreshCDS();
+  byId('cds').addEventListener('input',refreshCDS);
+  byId('mtype').addEventListener('change',function(){ var t=this.value;
+    byId('subField').style.display=t==='sub'?'':'none';
+    byId('insField').style.display=t==='ins'?'':'none';
+    byId('insSeqField').style.display=t==='ins'?'':'none';
+    byId('delField').style.display=t==='del'?'':'none';
+  });
+  byId('addMut').addEventListener('click',addMut);
+  byId('mutList').addEventListener('click',function(e){ var d=e.target.dataset?e.target.dataset.del:null; if(d!==null&&d!==undefined){ MUTS.splice(parseInt(d,10),1); renderMuts(); } });
+  byId('design').addEventListener('click',design);
+  byId('style').addEventListener('change',function(){ if(this.value==='quikchange'&&parseFloat(byId('tmT').value)<70) byId('tmT').value=78; if(this.value==='partial'&&parseFloat(byId('tmT').value)>70) byId('tmT').value=60; });
+  byId('demo').addEventListener('click',function(){ byId('cds').value=DEMO; byId('name').value='EGFP'; refreshCDS(); byId('mstr').value='A207K'; });
+}
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
