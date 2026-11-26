@@ -237,7 +237,7 @@ function complement(s) {
     if (COMP[ch] !== undefined) out += COMP[ch];
     else { out += ch; if (!/\s/.test(ch)) bad++; }
   }
-  if (bad) note(bad + ' character(s) had no defined complement and were left unchanged — consider running Clean first.');
+  if (bad) note(bad + ' character(s) had no defined complement and were left unchanged; consider running Clean first.');
   return out;
 }
 
