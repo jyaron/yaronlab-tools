@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abbreviation checker | yaronlab.tools</title>
+<meta name="description" content="Scan a manuscript for acronyms, check that each is defined at first use, flag undefined or unused ones, and build the abbreviations table.">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1a202c; --muted:#64748b; --accent:#2563eb;
+          --accent-soft:#dbeafe; --accent-deep:#1e3a8a; --border:#e2e8f0; --radius:10px;
+          --ok:#15803d; --ok-soft:#dcfce7; --warn:#b45309; --warn-soft:#fef3c7; --bad:#b91c1c; --bad-soft:#fee2e2; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 80px; }
+  .site-nav { font-size:0.85rem; margin-bottom:18px; }
+  .site-nav a { color:var(--muted); text-decoration:none; } .site-nav a:hover { color:var(--accent); }
+  .site-nav .sep { color:var(--border); margin:0 6px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:0.92rem; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; }
+  .card h2 { font-size:1rem; margin:0 0 4px; } .card h2 .num { color:var(--accent); margin-right:6px; }
+  .card .note { color:var(--muted); font-size:0.82rem; margin:0 0 14px; }
+  label.block { font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px; }
+  textarea, input[type=text], input[type=number], input[type=url], select { font:inherit; border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px; background:#fff; color:inherit; }
+  textarea { width:100%; min-height:120px; resize:vertical; }
+  textarea.mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.85rem; }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+  .col { display:flex; flex-direction:column; gap:4px; } .grow { flex:1 1 220px; }
+  button { font:inherit; font-weight:600; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; background:var(--accent); color:#fff; }
+  button:hover { filter:brightness(1.08); }
+  button.secondary { background:#fff; color:var(--ink); border:1px solid var(--border); font-weight:500; }
+  button.tiny { padding:2px 8px; font-size:0.78rem; font-weight:500; background:#fff; color:var(--muted); border:1px solid var(--border); }
+  button.tiny:hover { color:var(--accent); border-color:var(--accent); }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .hint { color:var(--muted); font-size:0.8rem; margin-top:6px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:0.86rem; }
+  th,td { border:1px solid var(--border); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:#f8fafc; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .msg { border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:8px; }
+  .msg.bad{background:var(--bad-soft);color:var(--bad);} .msg.warn{background:var(--warn-soft);color:var(--warn);} .msg.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill { display:inline-block; font-size:0.75rem; padding:1px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-weight:600; }
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .tabs button { background:none; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:7px 12px; font-weight:500; }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+  .tabpane { display:none; } .tabpane.on { display:block; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+  .stat { border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+  .stat .k { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  .stat .v { font-size:1.25rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  .outbox { width:100%; min-height:90px; font-size:0.9rem; }
+  .el { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:7px; padding:8px 10px; margin-bottom:6px; }
+  .el .sp { flex:1; }
+  footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; }
+  footer a { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>abbrev</span></nav>
+  <h1>Abbreviation checker</h1>
+  <div class="sub">Scan a manuscript for acronyms, check that each is defined at first use, flag undefined or unused ones, and build the abbreviations table.</div>
+  <div class="card">
+    <h2><span class="num">1</span>Manuscript text</h2>
+    <p class="note">Paste the manuscript. The tool finds acronyms (two or more capital letters, optionally with digits), detects where each is defined as "full term (ABC)", and flags problems: used but never defined, defined but never used, and defined only after first use.</p>
+    <textarea id="txt" placeholder="Paste text here..."></textarea>
+    <div class="btn-row">
+      <button id="scan">Scan</button>
+      <button class="secondary" id="demo">Load example</button>
+      <label style="font-size:0.85rem;margin-left:8px">Ignore list (comma separated): <input type="text" id="ignore" class="mono" value="DNA, RNA, PCR, ATP, DNA, USA" style="width:260px"></label>
+    </div>
+  </div>
+  <div class="card" id="outCard" style="display:none">
+    <div id="summary" class="stats"></div>
+    <div id="issues"></div>
+    <h2 style="font-size:0.95rem;margin:16px 0 6px">Abbreviations table</h2>
+    <div class="btn-row" style="margin-top:0"><button class="secondary" data-cp="tsv">Copy table (TSV)</button></div>
+    <div id="table" style="margin-top:10px"></div>
+  </div>
+  <footer>Part of <a href="/">yaronlab.tools</a>, a set of research utilities from the Yaron lab.</footer>
+</div>
+<script>
+
+function byId(i){return document.getElementById(i);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var DEMO="Epidermal growth factor receptor (EGFR) signaling drives keratinocyte proliferation, and EGFR transcripts rose sharply after stimulation. Live cells were sorted by FACS and imaged the same day. Reactive oxygen species (ROS) accumulated within two hours of treatment. Markers of ER stress were elevated well before the endoplasmic reticulum (ER) fraction was isolated, consistent with an early unfolded-protein response.";
+function scan(){
+  var text=byId('txt').value;
+  var ignore={}; byId('ignore').value.split(/[,\s]+/).filter(Boolean).forEach(function(x){ignore[x.toUpperCase()]=1;});
+  // candidate acronyms: 2+ chars, uppercase letters and digits, starting with a letter
+  var acroRe=/\b([A-Z][A-Z0-9]{1,})\b/g, m, counts={}, firstPos={};
+  while((m=acroRe.exec(text))!==null){
+    var a=m[1];
+    if(ignore[a]) continue;
+    if(/^[0-9]/.test(a)) continue;
+    counts[a]=(counts[a]||0)+1;
+    if(!(a in firstPos)) firstPos[a]=m.index;
+  }
+  // definitions: "full term (ABC)" where ABC is an acronym; capture preceding words
+  var defs={}, defPos={};
+  var defRe=/(([A-Za-z0-9][A-Za-z0-9\-]*\s+){0,6}[A-Za-z0-9][A-Za-z0-9\-]*)\s*\(([A-Z][A-Za-z0-9\-]{1,})\)/g;
+  while((m=defRe.exec(text))!==null){
+    var acr=m[3].toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(ignore[acr]) continue;
+    if(!(acr in counts)) { // the parenthetical may differ in case; still record
+    }
+    // derive expansion: take trailing words equal to ~ number of letters in acronym
+    var pre=m[1].trim().split(/\s+/);
+    var nLetters=(m[3].match(/[A-Za-z]/g)||[]).length;
+    var exp=pre.slice(Math.max(0,pre.length-nLetters)).join(' ');
+    if(!(acr in defs)){ defs[acr]=exp; defPos[acr]=m.index + m[0].lastIndexOf('('); }
+  }
+  // assemble rows for every acronym that is used and/or defined
+  var keys={}; Object.keys(counts).forEach(function(a){keys[a]=1;}); Object.keys(defs).forEach(function(a){keys[a]=1;});
+  var rows=Object.keys(keys).sort().map(function(a){
+    return {acr:a, n:counts[a]||0, def:defs[a]||'', firstUse:(a in firstPos)?firstPos[a]:-1, defAt:(a in defPos)?defPos[a]:-1};
+  });
+  render(rows);
+}
+function render(rows){
+  var undefined_=[], unused=[], lateDef=[];
+  rows.forEach(function(r){
+    if(r.n>0 && !r.def) undefined_.push(r.acr);
+    if(r.def && r.n<=1) unused.push(r.acr); // appears only in its definition
+    if(r.def && r.firstUse>=0 && r.defAt>r.firstUse) lateDef.push(r.acr);
+  });
+  byId('outCard').style.display='';
+  byId('summary').innerHTML=
+    '<div class="stat"><div class="k">Distinct acronyms</div><div class="v">'+rows.length+'</div></div>'+
+    '<div class="stat"><div class="k">Defined</div><div class="v">'+rows.filter(function(r){return r.def;}).length+'</div></div>'+
+    '<div class="stat"><div class="k">Undefined</div><div class="v">'+undefined_.length+'</div></div>';
+  var issues='';
+  if(undefined_.length) issues+='<div class="msg bad">Used but never defined: '+undefined_.map(esc).join(', ')+'.</div>';
+  if(lateDef.length) issues+='<div class="msg warn">Defined after first use: '+lateDef.map(esc).join(', ')+'.</div>';
+  if(unused.length) issues+='<div class="msg warn">Defined but used only once (the definition itself): '+unused.map(esc).join(', ')+'.</div>';
+  if(!issues) issues='<div class="msg ok">No issues detected: every acronym is defined at or before first use and used again.</div>';
+  byId('issues').innerHTML=issues;
+  var tsv='Abbreviation\tExpansion\tUses\n';
+  byId('table').innerHTML='<table><tr><th>Abbreviation</th><th>Expansion</th><th>Uses</th><th>Status</th></tr>'+
+    rows.map(function(r){
+      var st = !r.def? '<span style="color:var(--bad)">undefined</span>' : (r.defAt>r.firstUse&&r.firstUse>=0?'<span style="color:var(--warn)">late definition</span>':'<span style="color:var(--ok)">ok</span>');
+      tsv+=r.acr+'\t'+r.def+'\t'+r.n+'\n';
+      return '<tr><td class="mono"><b>'+esc(r.acr)+'</b></td><td>'+esc(r.def||'(not defined)')+'</td><td class="num">'+r.n+'</td><td>'+st+'</td></tr>';
+    }).join('')+'</table>';
+  window.__tsv=tsv;
+}
+function init(){
+  byId('scan').addEventListener('click',scan);
+  byId('demo').addEventListener('click',function(){byId('txt').value=DEMO; scan();});
+  document.addEventListener('click',function(e){ if(e.target.dataset.cp==='tsv'&&navigator.clipboard){ navigator.clipboard.writeText(window.__tsv||''); e.target.textContent='Copied'; var b=e.target; setTimeout(function(){b.textContent='Copy table (TSV)';},1200);} });
+}
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
