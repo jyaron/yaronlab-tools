@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manuscript word counter | yaronlab.tools</title>
+<meta name="description" content="Live word, character, sentence, and paragraph counts, with options to exclude references, captions, and citations, and a check against common journal limits.">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1a202c; --muted:#64748b; --accent:#2563eb;
+          --accent-soft:#dbeafe; --accent-deep:#1e3a8a; --border:#e2e8f0; --radius:10px;
+          --ok:#15803d; --ok-soft:#dcfce7; --warn:#b45309; --warn-soft:#fef3c7; --bad:#b91c1c; --bad-soft:#fee2e2; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 80px; }
+  .site-nav { font-size:0.85rem; margin-bottom:18px; }
+  .site-nav a { color:var(--muted); text-decoration:none; } .site-nav a:hover { color:var(--accent); }
+  .site-nav .sep { color:var(--border); margin:0 6px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:0.92rem; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; }
+  .card h2 { font-size:1rem; margin:0 0 4px; } .card h2 .num { color:var(--accent); margin-right:6px; }
+  .card .note { color:var(--muted); font-size:0.82rem; margin:0 0 14px; }
+  label.block { font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px; }
+  textarea, input[type=text], input[type=number], input[type=url], select { font:inherit; border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px; background:#fff; color:inherit; }
+  textarea { width:100%; min-height:120px; resize:vertical; }
+  textarea.mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.85rem; }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+  .col { display:flex; flex-direction:column; gap:4px; } .grow { flex:1 1 220px; }
+  button { font:inherit; font-weight:600; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; background:var(--accent); color:#fff; }
+  button:hover { filter:brightness(1.08); }
+  button.secondary { background:#fff; color:var(--ink); border:1px solid var(--border); font-weight:500; }
+  button.tiny { padding:2px 8px; font-size:0.78rem; font-weight:500; background:#fff; color:var(--muted); border:1px solid var(--border); }
+  button.tiny:hover { color:var(--accent); border-color:var(--accent); }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .hint { color:var(--muted); font-size:0.8rem; margin-top:6px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:0.86rem; }
+  th,td { border:1px solid var(--border); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:#f8fafc; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .msg { border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:8px; }
+  .msg.bad{background:var(--bad-soft);color:var(--bad);} .msg.warn{background:var(--warn-soft);color:var(--warn);} .msg.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill { display:inline-block; font-size:0.75rem; padding:1px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-weight:600; }
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .tabs button { background:none; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:7px 12px; font-weight:500; }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+  .tabpane { display:none; } .tabpane.on { display:block; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+  .stat { border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+  .stat .k { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  .stat .v { font-size:1.25rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  .outbox { width:100%; min-height:90px; font-size:0.9rem; }
+  .el { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:7px; padding:8px 10px; margin-bottom:6px; }
+  .el .sp { flex:1; }
+  footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; }
+  footer a { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>wordcount</span></nav>
+  <h1>Manuscript word counter</h1>
+  <div class="sub">Live word, character, sentence, and paragraph counts, with options to exclude references, captions, and citations, and a check against common journal limits.</div>
+  <div class="card">
+    <h2><span class="num">1</span>Manuscript text</h2>
+    <p class="note">Paste a section or the whole manuscript. Counts update live. Use the section selector to count the abstract or body separately, and exclude parts that most journals do not count.</p>
+    <textarea id="txt" placeholder="Paste text here..."></textarea>
+    <div class="btn-row">
+      <label style="font-size:0.85rem"><input type="checkbox" id="exRef" checked> Exclude a References section</label>
+      <label style="font-size:0.85rem"><input type="checkbox" id="exCap"> Exclude figure/table captions (lines starting with Figure/Table)</label>
+      <label style="font-size:0.85rem"><input type="checkbox" id="exCite"> Do not count in-text citations like [12] or (Smith, 2020)</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="stats" id="stats"></div>
+    <div class="row">
+      <div class="col grow"><label class="block" for="journal">Check against a journal limit</label>
+        <select id="journal"></select></div>
+      <div class="col"><label class="block" for="part">Counting</label>
+        <select id="part"><option value="body">Main text</option><option value="abstract">Abstract</option></select></div>
+    </div>
+    <div id="limitMsg"></div>
+  </div>
+  <footer>Part of <a href="/">yaronlab.tools</a>, a set of research utilities from the Yaron lab.</footer>
+</div>
+<script>
+
+function byId(i){return document.getElementById(i);}
+// representative limits (words unless noted); editable starting point, confirm against the journal's current guide
+var LIMITS=[
+ {name:'(none)', abstract:0, body:0},
+ {name:'Generic research article (abstract 250 / body 5000)', abstract:250, body:5000},
+ {name:'Nature (abstract 150 / main 3000)', abstract:150, body:3000},
+ {name:'Science Report (abstract 125 / body 4500)', abstract:125, body:4500},
+ {name:'Cell (abstract 150 / body 45000 chars)', abstract:150, body:0},
+ {name:'PNAS (abstract 250 / body 6000)', abstract:250, body:6000},
+ {name:'PLOS ONE (abstract 300 / no body limit)', abstract:300, body:0},
+ {name:'eLife (abstract 150 / no body limit)', abstract:150, body:0},
+ {name:'Bioinformatics Application Note (abstract 150 / body 2000)', abstract:150, body:2000},
+ {name:'EMBO J (abstract 175 / body 55000 chars)', abstract:175, body:0},
+ {name:'JBC (abstract 200 / no strict body)', abstract:200, body:0}
+];
+function processed(){
+  var t=byId('txt').value;
+  if(byId('exRef').checked){
+    // remove from a line that is just References/Bibliography/Literature Cited to end
+    var m=t.match(/^\s*(references|bibliography|literature cited|works cited)\s*:?\s*$/im);
+    if(m) t=t.slice(0, m.index);
+  }
+  if(byId('exCap').checked){
+    t=t.split(/\r?\n/).filter(function(l){ return !/^\s*(figure|fig\.?|table|supplementary figure|supplementary table|scheme)\s*\d/i.test(l); }).join('\n');
+  }
+  if(byId('exCite').checked){
+    t=t.replace(/\[[\d,\s\-]+\]/g,' ');                 // [12], [1-3], [1,2]
+    t=t.replace(/\([^()]*\b(19|20)\d{2}[a-z]?\b[^()]*\)/g,' '); // (Smith et al., 2020)
+  }
+  return t;
+}
+function countWords(t){ var m=t.trim().match(/[^\s]+/g); return m?m.length:0; }
+function update(){
+  var t=processed();
+  var words=countWords(t);
+  var charsNo=(t.replace(/\s/g,'')).length;
+  var chars=t.length;
+  var sentences=(t.match(/[.!?]+(\s|$)/g)||[]).length;
+  var paras=t.split(/\n\s*\n/).map(function(s){return s.trim();}).filter(Boolean).length;
+  byId('stats').innerHTML=
+    '<div class="stat"><div class="k">Words</div><div class="v">'+words.toLocaleString()+'</div></div>'+
+    '<div class="stat"><div class="k">Characters (no spaces)</div><div class="v">'+charsNo.toLocaleString()+'</div></div>'+
+    '<div class="stat"><div class="k">Characters (with spaces)</div><div class="v">'+chars.toLocaleString()+'</div></div>'+
+    '<div class="stat"><div class="k">Sentences</div><div class="v">'+sentences.toLocaleString()+'</div></div>'+
+    '<div class="stat"><div class="k">Paragraphs</div><div class="v">'+paras.toLocaleString()+'</div></div>';
+  checkLimit(words, charsNo);
+}
+function checkLimit(words, chars){
+  var j=LIMITS[+byId('journal').value], part=byId('part').value, box=byId('limitMsg');
+  if(!j || j.name==='(none)'){ box.innerHTML=''; return; }
+  var lim = part==='abstract'? j.abstract : j.body;
+  var isChar = /chars/.test(j.name) && part==='body';
+  var val = isChar? chars : words;
+  if(!lim){ box.innerHTML='<div class="msg ok">No fixed '+part+' limit listed for this journal. Always confirm against the current author guidelines.</div>'; return; }
+  var unit=isChar?'characters':'words';
+  if(val<=lim) box.innerHTML='<div class="msg ok">'+val.toLocaleString()+' / '+lim.toLocaleString()+' '+unit+' ('+(lim-val).toLocaleString()+' under the '+part+' limit).</div>';
+  else box.innerHTML='<div class="msg bad">'+val.toLocaleString()+' / '+lim.toLocaleString()+' '+unit+' ('+(val-lim).toLocaleString()+' over the '+part+' limit).</div>';
+}
+function init(){
+  byId('journal').innerHTML=LIMITS.map(function(j,i){return '<option value="'+i+'">'+j.name+'</option>';}).join('');
+  ['txt'].forEach(function(id){byId(id).addEventListener('input',update);});
+  ['exRef','exCap','exCite','journal','part'].forEach(function(id){byId(id).addEventListener('change',update);});
+  update();
+}
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
