@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Author & affiliation block builder | yaronlab.tools</title>
+<meta name="description" content="Build a title-page author list with automatically numbered affiliations, corresponding-author and equal-contribution marks, and ORCID iDs.">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1a202c; --muted:#64748b; --accent:#2563eb;
+          --accent-soft:#dbeafe; --accent-deep:#1e3a8a; --border:#e2e8f0; --radius:10px;
+          --ok:#15803d; --ok-soft:#dcfce7; --warn:#b45309; --warn-soft:#fef3c7; --bad:#b91c1c; --bad-soft:#fee2e2; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 80px; }
+  .site-nav { font-size:0.85rem; margin-bottom:18px; }
+  .site-nav a { color:var(--muted); text-decoration:none; } .site-nav a:hover { color:var(--accent); }
+  .site-nav .sep { color:var(--border); margin:0 6px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:0.92rem; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; }
+  .card h2 { font-size:1rem; margin:0 0 4px; } .card h2 .num { color:var(--accent); margin-right:6px; }
+  .card .note { color:var(--muted); font-size:0.82rem; margin:0 0 14px; }
+  label.block { font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px; }
+  textarea, input[type=text], input[type=number], input[type=url], select { font:inherit; border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px; background:#fff; color:inherit; }
+  textarea { width:100%; min-height:120px; resize:vertical; }
+  textarea.mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.85rem; }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+  .col { display:flex; flex-direction:column; gap:4px; } .grow { flex:1 1 220px; }
+  button { font:inherit; font-weight:600; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; background:var(--accent); color:#fff; }
+  button:hover { filter:brightness(1.08); }
+  button.secondary { background:#fff; color:var(--ink); border:1px solid var(--border); font-weight:500; }
+  button.tiny { padding:2px 8px; font-size:0.78rem; font-weight:500; background:#fff; color:var(--muted); border:1px solid var(--border); }
+  button.tiny:hover { color:var(--accent); border-color:var(--accent); }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .hint { color:var(--muted); font-size:0.8rem; margin-top:6px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:0.86rem; }
+  th,td { border:1px solid var(--border); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:#f8fafc; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .msg { border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:8px; }
+  .msg.bad{background:var(--bad-soft);color:var(--bad);} .msg.warn{background:var(--warn-soft);color:var(--warn);} .msg.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill { display:inline-block; font-size:0.75rem; padding:1px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-weight:600; }
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .tabs button { background:none; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:7px 12px; font-weight:500; }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+  .tabpane { display:none; } .tabpane.on { display:block; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+  .stat { border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+  .stat .k { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  .stat .v { font-size:1.25rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  .outbox { width:100%; min-height:90px; font-size:0.9rem; }
+  .el { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:7px; padding:8px 10px; margin-bottom:6px; }
+  .el .sp { flex:1; }
+  footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; }
+  footer a { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>authors</span></nav>
+  <h1>Author & affiliation block builder</h1>
+  <div class="sub">Build a title-page author list with automatically numbered affiliations, corresponding-author and equal-contribution marks, and ORCID iDs.</div>
+  <div class="card">
+    <h2><span class="num">1</span>Authors</h2>
+    <p class="note">Add authors in order. Give each one or more affiliations exactly as they should appear; identical affiliations are merged and numbered automatically. Mark the corresponding author(s) and add ORCID iDs if wanted.</p>
+    <div class="row">
+      <div class="col grow"><label class="block" for="aName">Name (as it should appear)</label><input type="text" id="aName" placeholder="Jane Q. Doe" style="width:100%"></div>
+      <div class="col grow" style="flex:2 1 320px"><label class="block" for="aAff">Affiliation(s), one per line</label><textarea id="aAff" style="min-height:60px" placeholder="Department of X, University of Y, City, Country"></textarea></div>
+    </div>
+    <div class="row">
+      <div class="col grow"><label class="block" for="aOrcid">ORCID (optional)</label><input type="text" id="aOrcid" placeholder="0000-0002-1825-0097" style="width:100%"></div>
+      <div class="col"><label class="block">&nbsp;</label><label style="font-size:0.85rem;font-weight:500"><input type="checkbox" id="aCorr"> Corresponding</label></div>
+      <div class="col"><label class="block">&nbsp;</label><label style="font-size:0.85rem;font-weight:500"><input type="checkbox" id="aEqual"> Equal contribution</label></div>
+      <div class="col"><label class="block">&nbsp;</label><button class="secondary" id="addA">Add author</button></div>
+    </div>
+    <div id="aList" style="margin-top:10px"></div>
+    <div class="btn-row"><button class="secondary" id="demoA">Load example</button><button class="secondary" id="clearA">Clear</button></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">2</span>Options</h2>
+    <div class="row">
+      <div class="col grow"><label class="block" for="affStyle">Affiliation markers</label>
+        <select id="affStyle"><option value="super">Superscript numbers</option><option value="paren">Parenthetical numbers</option></select></div>
+      <div class="col grow"><label class="block" for="corrMark">Corresponding marker</label>
+        <select id="corrMark"><option value="*">Asterisk (*)</option><option value="dagger">Dagger</option></select></div>
+      <div class="col"><label class="block">&nbsp;</label><label style="font-size:0.85rem;font-weight:500"><input type="checkbox" id="showOrcid" checked> Show ORCID iDs</label></div>
+    </div>
+  </div>
+
+  <div class="card" id="outCard" style="display:none">
+    <div class="btn-row" style="margin-top:0"><button class="secondary" data-cp="plain">Copy author line</button><button class="secondary" data-cp="full">Copy full block</button></div>
+    <div id="out" style="margin-top:12px"></div>
+  </div>
+  <footer>Part of <a href="/">yaronlab.tools</a>, a set of research utilities from the Yaron lab.</footer>
+</div>
+<script>
+
+function byId(i){return document.getElementById(i);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var A=[];
+function supNum(n){ // map digits to unicode superscripts
+  var m={'0':'\u2070','1':'\u00B9','2':'\u00B2','3':'\u00B3','4':'\u2074','5':'\u2075','6':'\u2076','7':'\u2077','8':'\u2078','9':'\u2079'};
+  return String(n).split('').map(function(d){return m[d]||d;}).join('');
+}
+function addA(){
+  var name=byId('aName').value.trim();
+  var affs=byId('aAff').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+  if(!name){ alert('Enter an author name.'); return; }
+  if(!affs.length){ alert('Enter at least one affiliation.'); return; }
+  A.push({name:name, affs:affs, orcid:byId('aOrcid').value.trim(), corr:byId('aCorr').checked, equal:byId('aEqual').checked});
+  byId('aName').value=''; byId('aAff').value=''; byId('aOrcid').value=''; byId('aCorr').checked=false; byId('aEqual').checked=false;
+  byId('aName').focus(); render();
+}
+function render(){
+  var list=byId('aList');
+  if(!A.length){ list.innerHTML='<div class="hint">No authors yet.</div>'; byId('outCard').style.display='none'; return; }
+  list.innerHTML=A.map(function(a,i){
+    return '<div class="el"><span><b>'+esc(a.name)+'</b>'+(a.corr?' <span class="pill">corresponding</span>':'')+(a.equal?' <span class="pill">equal</span>':'')+
+      '<div class="hint" style="margin:2px 0 0">'+esc(a.affs.join(' ; '))+(a.orcid?'  ORCID '+esc(a.orcid):'')+'</div></span>'+
+      '<span class="sp"></span>'+
+      '<button class="tiny" data-mv="'+i+':-1">up</button><button class="tiny" data-mv="'+i+':1">down</button>'+
+      '<button class="tiny" data-rm="'+i+'">remove</button></div>';
+  }).join('');
+  build();
+}
+function build(){
+  // number affiliations by first appearance
+  var affOrder=[], affIndex={};
+  A.forEach(function(a){ a.affs.forEach(function(af){ if(!(af in affIndex)){ affIndex[af]=affOrder.length+1; affOrder.push(af); } }); });
+  var style=byId('affStyle').value, corrMark=byId('corrMark').value==='*'?'*':'\u2020';
+  var showO=byId('showOrcid').checked;
+  var authorLine=A.map(function(a){
+    var nums=a.affs.map(function(af){return affIndex[af];});
+    var mk2 = (byId('affStyle').value==='super')
+      ? nums.map(supNum).join('\u2009') + (a.equal?'\u00A7':'') + (a.corr?corrMark:'')
+      : a.name+' ('+nums.join(',')+')'+(a.equal?' \u00A7':'')+(a.corr?' '+corrMark:'');
+    return (byId('affStyle').value==='super') ? (a.name+mk2) : mk2;
+  }).join(', ');
+  var affList=affOrder.map(function(af,i){ var n=i+1; return (byId('affStyle').value==='super'?supNum(n):n+'.')+' '+af; }).join('\n');
+  var corrs=A.filter(function(a){return a.corr;});
+  var corrLine = corrs.length? corrMark+' Correspondence: '+corrs.map(function(a){return a.name+(a.orcid&&showO?' (ORCID '+a.orcid+')':'');}).join('; ') : '';
+  var equalLine = A.some(function(a){return a.equal;})? '\u00A7 These authors contributed equally.' : '';
+  var orcidLines = showO ? A.filter(function(a){return a.orcid;}).map(function(a){return a.name+': https://orcid.org/'+a.orcid;}) : [];
+  // store for copy (plain text)
+  window.__plain=authorLine;
+  window.__full=[authorLine,'',affList, corrLine, equalLine].filter(Boolean).join('\n');
+  if(orcidLines.length){ window.__full += '\n\nORCID iDs\n'+orcidLines.join('\n'); }
+  byId('outCard').style.display='';
+  byId('out').innerHTML='<label class="block">Author line</label><textarea class="outbox" readonly>'+esc(authorLine)+'</textarea>'+
+    '<label class="block" style="margin-top:10px">Affiliations</label><textarea class="outbox mono" readonly>'+esc(affList)+'</textarea>'+
+    ((corrLine||equalLine)?'<label class="block" style="margin-top:10px">Notes</label><textarea class="outbox" readonly>'+esc([corrLine,equalLine].filter(Boolean).join('\n'))+'</textarea>':'')+
+    (orcidLines.length?'<label class="block" style="margin-top:10px">ORCID</label><textarea class="outbox mono" readonly>'+esc(orcidLines.join('\n'))+'</textarea>':'');
+}
+function init(){
+  render();
+  byId('addA').addEventListener('click',addA);
+  byId('aOrcid').addEventListener('keydown',function(e){if(e.key==='Enter')addA();});
+  byId('affStyle').addEventListener('change',render);
+  byId('corrMark').addEventListener('change',render);
+  byId('showOrcid').addEventListener('change',render);
+  byId('aList').addEventListener('click',function(e){
+    var mv=e.target.dataset.mv, rm=e.target.dataset.rm;
+    if(mv){ var p=mv.split(':'),i=+p[0],j=i+ +p[1]; if(j>=0&&j<A.length){ var t=A[i];A[i]=A[j];A[j]=t; render(); } }
+    if(rm!==undefined){ A.splice(+rm,1); render(); }
+  });
+  document.addEventListener('click',function(e){ var cp=e.target.dataset.cp; if(cp&&navigator.clipboard){ navigator.clipboard.writeText(cp==='plain'?window.__plain:window.__full); e.target.textContent='Copied'; var b=e.target; setTimeout(function(){b.textContent=cp==='plain'?'Copy author line':'Copy full block';},1200);} });
+  byId('clearA').addEventListener('click',function(){A=[];render();});
+  byId('demoA').addEventListener('click',function(){
+    A=[{name:'Jane Q. Doe',affs:['Department of Biology, Arizona State University, Tempe, AZ, USA'],orcid:'0000-0002-1825-0097',corr:true,equal:true},
+       {name:'John A. Smith',affs:['Department of Biology, Arizona State University, Tempe, AZ, USA','Biodesign Institute, Arizona State University, Tempe, AZ, USA'],orcid:'',corr:false,equal:true},
+       {name:'Mar\u00eda Garc\u00eda-L\u00f3pez',affs:['Biodesign Institute, Arizona State University, Tempe, AZ, USA'],orcid:'0000-0001-2345-6789',corr:false,equal:false}];
+    render();
+  });
+}
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
