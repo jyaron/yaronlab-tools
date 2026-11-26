@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submission statements generator | yaronlab.tools</title>
+<meta name="description" content="Generate the conflict-of-interest, data availability, funding, and ethics statements that journals require, from a few fields.">
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1a202c; --muted:#64748b; --accent:#2563eb;
+          --accent-soft:#dbeafe; --accent-deep:#1e3a8a; --border:#e2e8f0; --radius:10px;
+          --ok:#15803d; --ok-soft:#dcfce7; --warn:#b45309; --warn-soft:#fef3c7; --bad:#b91c1c; --bad-soft:#fee2e2; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 80px; }
+  .site-nav { font-size:0.85rem; margin-bottom:18px; }
+  .site-nav a { color:var(--muted); text-decoration:none; } .site-nav a:hover { color:var(--accent); }
+  .site-nav .sep { color:var(--border); margin:0 6px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:0.92rem; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:18px; }
+  .card h2 { font-size:1rem; margin:0 0 4px; } .card h2 .num { color:var(--accent); margin-right:6px; }
+  .card .note { color:var(--muted); font-size:0.82rem; margin:0 0 14px; }
+  label.block { font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px; }
+  textarea, input[type=text], input[type=number], input[type=url], select { font:inherit; border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px; background:#fff; color:inherit; }
+  textarea { width:100%; min-height:120px; resize:vertical; }
+  textarea.mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.85rem; }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+  .col { display:flex; flex-direction:column; gap:4px; } .grow { flex:1 1 220px; }
+  button { font:inherit; font-weight:600; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; background:var(--accent); color:#fff; }
+  button:hover { filter:brightness(1.08); }
+  button.secondary { background:#fff; color:var(--ink); border:1px solid var(--border); font-weight:500; }
+  button.tiny { padding:2px 8px; font-size:0.78rem; font-weight:500; background:#fff; color:var(--muted); border:1px solid var(--border); }
+  button.tiny:hover { color:var(--accent); border-color:var(--accent); }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .hint { color:var(--muted); font-size:0.8rem; margin-top:6px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:0.86rem; }
+  th,td { border:1px solid var(--border); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:#f8fafc; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .msg { border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:8px; }
+  .msg.bad{background:var(--bad-soft);color:var(--bad);} .msg.warn{background:var(--warn-soft);color:var(--warn);} .msg.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill { display:inline-block; font-size:0.75rem; padding:1px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-weight:600; }
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .tabs button { background:none; color:var(--muted); border:none; border-bottom:2px solid transparent; border-radius:0; padding:7px 12px; font-weight:500; }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+  .tabpane { display:none; } .tabpane.on { display:block; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+  .stat { border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+  .stat .k { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted); }
+  .stat .v { font-size:1.25rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  .outbox { width:100%; min-height:90px; font-size:0.9rem; }
+  .el { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:7px; padding:8px 10px; margin-bottom:6px; }
+  .el .sp { flex:1; }
+  footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; }
+  footer a { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="site-nav"><a href="/">yaronlab.tools</a><span class="sep">/</span><span>statements</span></nav>
+  <h1>Submission statements generator</h1>
+  <div class="sub">Generate the conflict-of-interest, data availability, funding, and ethics statements that journals require, from a few fields.</div>
+  <div class="tabs" id="tabs">
+    <button data-t="coi" class="on">Conflict of interest</button>
+    <button data-t="data">Data availability</button>
+    <button data-t="fund">Funding</button>
+    <button data-t="ethics">Ethics</button>
+  </div>
+
+  <div class="tabpane on" id="pane-coi">
+    <div class="card">
+      <h2>Conflict of interest</h2>
+      <div class="row">
+        <div class="col grow"><label class="block" for="coiMode">Declaration</label>
+          <select id="coiMode"><option value="none">The authors declare no competing interests</option><option value="some">Specific competing interests to declare</option></select></div>
+      </div>
+      <div id="coiDetail" style="display:none"><label class="block" for="coiText">Describe the competing interests</label>
+        <textarea id="coiText" style="min-height:70px" placeholder="J.D. is a co-inventor on patent ... ; A.S. has received consulting fees from ..."></textarea></div>
+      <div class="out-slot" data-for="coi"></div>
+    </div>
+  </div>
+
+  <div class="tabpane" id="pane-data">
+    <div class="card">
+      <h2>Data availability</h2>
+      <div class="row"><div class="col grow"><label class="block" for="daMode">Scenario</label>
+        <select id="daMode">
+          <option value="inpaper">All data are in the paper and its supplementary information</option>
+          <option value="repo">Deposited in a public repository</option>
+          <option value="request">Available from the corresponding author on reasonable request</option>
+          <option value="restricted">Restricted (ethical/legal) and available under conditions</option>
+        </select></div></div>
+      <div id="daRepo" style="display:none">
+        <div class="row">
+          <div class="col grow"><label class="block" for="daRepoName">Repository</label><input type="text" id="daRepoName" placeholder="Gene Expression Omnibus" style="width:100%"></div>
+          <div class="col grow"><label class="block" for="daAcc">Accession / identifier</label><input type="text" id="daAcc" placeholder="GSE123456" style="width:100%"></div>
+          <div class="col grow"><label class="block" for="daUrl">URL or DOI (optional)</label><input type="text" id="daUrl" placeholder="https://doi.org/..." style="width:100%"></div>
+        </div>
+      </div>
+      <div id="daReq" style="display:none"><label class="block" for="daReqWho">Contact</label><input type="text" id="daReqWho" placeholder="the corresponding author" style="width:100%"></div>
+      <div class="out-slot" data-for="data"></div>
+    </div>
+  </div>
+
+  <div class="tabpane" id="pane-fund">
+    <div class="card">
+      <h2>Funding</h2>
+      <p class="note">Add each award. The statement lists them in order; add a "no specific funding" line if there was none.</p>
+      <div class="row">
+        <div class="col grow"><label class="block" for="fFunder">Funder</label><input type="text" id="fFunder" placeholder="National Institutes of Health" style="width:100%"></div>
+        <div class="col grow"><label class="block" for="fGrant">Award number</label><input type="text" id="fGrant" placeholder="R01 GM123456" style="width:100%"></div>
+        <div class="col grow"><label class="block" for="fWho">Recipient (optional)</label><input type="text" id="fWho" placeholder="to J.D." style="width:100%"></div>
+        <div class="col"><label class="block">&nbsp;</label><button class="secondary" id="addF">Add</button></div>
+      </div>
+      <div id="fList"></div>
+      <div class="btn-row"><label style="font-size:0.85rem"><input type="checkbox" id="fNone"> No specific funding was received</label></div>
+      <div class="out-slot" data-for="fund"></div>
+    </div>
+  </div>
+
+  <div class="tabpane" id="pane-ethics">
+    <div class="card">
+      <h2>Ethics</h2>
+      <div class="btn-row" style="margin-top:0;margin-bottom:10px">
+        <label style="font-size:0.85rem"><input type="checkbox" id="eHuman"> Human subjects</label>
+        <label style="font-size:0.85rem"><input type="checkbox" id="eAnimal"> Animal work</label>
+      </div>
+      <div id="eHumanF" style="display:none">
+        <div class="row">
+          <div class="col grow"><label class="block" for="eIrb">IRB / ethics committee</label><input type="text" id="eIrb" placeholder="the Arizona State University IRB" style="width:100%"></div>
+          <div class="col grow"><label class="block" for="eIrbNum">Protocol number</label><input type="text" id="eIrbNum" placeholder="STUDY00012345" style="width:100%"></div>
+        </div>
+        <label style="font-size:0.85rem"><input type="checkbox" id="eConsent" checked> Informed consent was obtained from all participants</label>
+      </div>
+      <div id="eAnimalF" style="display:none">
+        <div class="row">
+          <div class="col grow"><label class="block" for="eIacuc">IACUC / animal committee</label><input type="text" id="eIacuc" placeholder="the Arizona State University IACUC" style="width:100%"></div>
+          <div class="col grow"><label class="block" for="eIacucNum">Protocol number</label><input type="text" id="eIacucNum" placeholder="23-1234R" style="width:100%"></div>
+        </div>
+      </div>
+      <div class="out-slot" data-for="ethics"></div>
+    </div>
+  </div>
+  <footer>Part of <a href="/">yaronlab.tools</a>, a set of research utilities from the Yaron lab.</footer>
+</div>
+<script>
+
+function byId(i){return document.getElementById(i);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var FUND=[];
+function slot(name){ return document.querySelector('.out-slot[data-for="'+name+'"]'); }
+function emitOut(name, text){
+  var s=slot(name);
+  if(!text){ s.innerHTML=''; return; }
+  s.innerHTML='<label class="block" style="margin-top:14px">Statement</label><textarea class="outbox" readonly>'+esc(text)+'</textarea>'+
+    '<div class="btn-row"><button class="secondary" data-cpval="'+esc(text).replace(/"/g,'&quot;')+'">Copy</button></div>';
+}
+function coi(){
+  var t = byId('coiMode').value==='none'
+    ? 'The authors declare no competing interests.'
+    : (byId('coiText').value.trim()||'[describe the competing interests]');
+  byId('coiDetail').style.display = byId('coiMode').value==='some'?'':'none';
+  emitOut('coi', t);
+}
+function data(){
+  var mode=byId('daMode').value, t='';
+  byId('daRepo').style.display = mode==='repo'?'':'none';
+  byId('daReq').style.display = mode==='request'?'':'none';
+  if(mode==='inpaper') t='All data generated or analyzed during this study are included in this published article and its supplementary information files.';
+  else if(mode==='repo'){ var r=byId('daRepoName').value.trim()||'[repository]', a=byId('daAcc').value.trim()||'[accession]', u=byId('daUrl').value.trim();
+    t='The data generated in this study have been deposited in the '+r+' under accession '+a+(u?' ('+u+')':'')+'.'; }
+  else if(mode==='request') t='The data that support the findings of this study are available from '+(byId('daReqWho').value.trim()||'the corresponding author')+' on reasonable request.';
+  else t='The data are subject to ethical and legal restrictions and are available from the corresponding author on reasonable request, subject to approval.';
+  emitOut('data', t);
+}
+function renderFund(){
+  byId('fList').innerHTML = FUND.length? FUND.map(function(f,i){
+    return '<div class="el"><span>'+esc(f.funder)+(f.grant?' ('+esc(f.grant)+')':'')+(f.who?' '+esc(f.who):'')+'</span><span class="sp"></span><button class="tiny" data-rmf="'+i+'">remove</button></div>';
+  }).join('') : '<div class="hint">No awards added.</div>';
+  fund();
+}
+function fund(){
+  var t;
+  if(byId('fNone').checked) t='This research received no specific grant from any funding agency in the public, commercial, or not-for-profit sectors.';
+  else if(!FUND.length) t='';
+  else t='This work was supported by '+FUND.map(function(f){ return f.funder+(f.grant?' (grant '+f.grant+')':'')+(f.who?' '+f.who:''); }).join('; ')+'.';
+  emitOut('fund', t);
+}
+function ethics(){
+  byId('eHumanF').style.display=byId('eHuman').checked?'':'none';
+  byId('eAnimalF').style.display=byId('eAnimal').checked?'':'none';
+  var parts=[];
+  if(byId('eHuman').checked){
+    parts.push('This study was approved by '+(byId('eIrb').value.trim()||'[IRB]')+(byId('eIrbNum').value.trim()?' (protocol '+byId('eIrbNum').value.trim()+')':'')+' and was conducted in accordance with the Declaration of Helsinki.'+(byId('eConsent').checked?' Informed consent was obtained from all participants.':''));
+  }
+  if(byId('eAnimal').checked){
+    parts.push('All animal procedures were approved by '+(byId('eIacuc').value.trim()||'[IACUC]')+(byId('eIacucNum').value.trim()?' (protocol '+byId('eIacucNum').value.trim()+')':'')+' and performed in accordance with relevant guidelines and regulations.');
+  }
+  emitOut('ethics', parts.join(' '));
+}
+function showTab(t){
+  document.querySelectorAll('#tabs button').forEach(function(b){b.classList.toggle('on',b.dataset.t===t);});
+  document.querySelectorAll('.tabpane').forEach(function(p){p.classList.toggle('on',p.id==='pane-'+t);});
+}
+function init(){
+  document.querySelectorAll('#tabs button').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.t);});});
+  byId('coiMode').addEventListener('change',coi); byId('coiText').addEventListener('input',coi);
+  ['daMode','daRepoName','daAcc','daUrl','daReqWho'].forEach(function(id){byId(id).addEventListener('input',data); byId(id).addEventListener('change',data);});
+  byId('addF').addEventListener('click',function(){ var f=byId('fFunder').value.trim(); if(!f){alert('Enter a funder.');return;}
+    FUND.push({funder:f,grant:byId('fGrant').value.trim(),who:byId('fWho').value.trim()}); byId('fFunder').value='';byId('fGrant').value='';byId('fWho').value=''; renderFund(); });
+  byId('fNone').addEventListener('change',fund);
+  byId('fList').addEventListener('click',function(e){ if(e.target.dataset.rmf!==undefined){ FUND.splice(+e.target.dataset.rmf,1); renderFund(); } });
+  ['eHuman','eAnimal','eIrb','eIrbNum','eConsent','eIacuc','eIacucNum'].forEach(function(id){byId(id).addEventListener('input',ethics);byId(id).addEventListener('change',ethics);});
+  document.addEventListener('click',function(e){ var v=e.target.dataset.cpval; if(v!==undefined&&navigator.clipboard){ var tmp=document.createElement('textarea'); tmp.innerHTML=v; navigator.clipboard.writeText(tmp.value); e.target.textContent='Copied'; var b=e.target; setTimeout(function(){b.textContent='Copy';},1200);} });
+  coi(); data(); renderFund(); ethics();
+}
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
