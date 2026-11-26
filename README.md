@@ -39,11 +39,21 @@ nearest-neighbor Tm, degenerate codons) inlined into each page.
 |---|---|
 | [/dna](https://yaronlab.tools/dna/) | DNA sequence toolbox: cleanup, reverse complement, DNA to RNA, case conversion, line wrapping, position numbering |
 
+### Figures & data
+
+| URL | Tool |
+|---|---|
+| [/figure](https://yaronlab.tools/figure/) | Multi-panel figure layout manager: justified packing with no wasted whitespace, auto-trim, row grouping, panel lettering, project save/load, and export to PNG, TIFF, PPTX, and SVG at 300 or 600 DPI in RGB or CMYK. Arranges finished panels; does not edit inside them |
+
 ### Writing & publishing
 
 | URL | Tool |
 |---|---|
 | [/credit](https://yaronlab.tools/credit/) | CRediT author contribution statement generator: paste an author list, check roles in a grid, copy a journal-ready statement |
+| [/authors](https://yaronlab.tools/authors/) | Author and affiliation block builder: auto-numbered affiliations, corresponding-author and equal-contribution marks, ORCID iDs |
+| [/statements](https://yaronlab.tools/statements/) | Submission statements: conflict-of-interest, data availability, funding, and ethics, generated from a few fields |
+| [/wordcount](https://yaronlab.tools/wordcount/) | Manuscript word counter: live counts with reference/caption/citation exclusions, checked against common journal limits |
+| [/abbrev](https://yaronlab.tools/abbrev/) | Abbreviation checker: find acronyms, verify define-at-first-use, flag undefined/unused, build the abbreviations table |
 
 ## Offline use
 
